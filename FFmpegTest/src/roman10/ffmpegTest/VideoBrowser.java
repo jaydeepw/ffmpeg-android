@@ -42,6 +42,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 	private static native int[] naGetVideoResolution();
 	private static native String naGetVideoCodecName();
 	private static native String naGetVideoFormatName();
+	private static native void compressFile(String _inputPath, String _inputFormat, String _outputPath, String _outputFormat);
 	private static native void naClose();
 	
 	private void showVideoInfo(final File _file) {
@@ -304,7 +305,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 	private Button btn_bottommenu1;
 	private Button btn_bottommenu2;
 	private Button btn_bottommenu3;
-	//private Button btn_bottommenu4;
+	private Button btn_bottommenu4;
 	//title bar
 	private TextView text_titlebar_text;
 	
@@ -360,6 +361,17 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 				loadVideosFromDirectory("/sdcard/");
 			}
 		});
+		btn_bottommenu4 = (Button) findViewById(R.id.video_browser_compress);
+		btn_bottommenu4.setWidth(l_btnWidth);
+		btn_bottommenu4.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				currentFocusedBtn = 4;
+				last_list_view_pos = 0;
+				media_browser_load_option = 1;
+				last_media_browser_load_option = media_browser_load_option;
+				compressVideo();
+			}			
+		});
 		media_browser_load_option = last_media_browser_load_option;
 		if (media_browser_load_option==2) {
 			btn_bottommenu1.setEnabled(false);
@@ -370,6 +382,11 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 		}
 		loadVideosFromDirectory("/sdcard/");
 	}
+	
+	private void compressVideo() {
+		compressFile("/storage/emulated/0/Movies/Sunny_Sunny-Yaariyan.mp4", "mp4", "/storage/emulated/0/Movies/COMPRESSED_Sunny_Sunny-Yaariyan.mp4", "mp4");
+	}
+	
 	//refresh the UI when the directoryEntries changes
 	private static int last_list_view_pos = 0;
 	public void refreshUI() {

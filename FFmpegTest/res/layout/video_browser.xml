@@ -12,7 +12,7 @@
    			android:layout_width="fill_parent" 
 			android:layout_height="wrap_content"
 			android:layout_alignParentBottom="true"
-			>
+			android:orientation="vertical" >
 			<!-- This part is left for Admob ads -->
 		</LinearLayout>
         <TableLayout android:id="@+id/video_browser_buttons" 
@@ -23,21 +23,22 @@
 				android:gravity="center">
 				<Button android:id="@+id/video_browser_btn1" 
 				  	android:text="Gallery"
-				  	style="@style/btn_bottommenu"
-					/>	
+				  	style="@style/btn_bottommenu" />
 				<Button android:id="@+id/video_browser_btn2" 
 				  	android:text="Browse"
-				  	style="@style/btn_bottommenu"
-					/>	
+				  	style="@style/btn_bottommenu" />
 				<Button android:id="@+id/video_browser_btn3" 
 				  	android:text="All"
-				  	style="@style/btn_bottommenu"
-					/>
+				  	style="@style/btn_bottommenu" />
 				<Button android:id="@+id/video_browser_btn4" 
 				  	android:text="Add"
 				  	style="@style/btn_bottommenu"
-				  	android:visibility="gone"
-					/>
+				  	android:visibility="gone" />
+				
+				<Button android:id="@+id/video_browser_compress" 
+				  	android:text="Compress"
+				  	style="@style/btn_bottommenu"
+				  	android:visibility="visible" />
 		  	</TableRow>
 		</TableLayout>
    
