@@ -14,6 +14,7 @@ this is the wrapper of the native functions
 #include <inttypes.h>
 #include <unistd.h>
 #include <assert.h>
+#include <string.h>
 /*ffmpeg headers*/
 #include <libavutil/avstring.h>
 #include <libavutil/pixdesc.h>
@@ -33,6 +34,15 @@ this is the wrapper of the native functions
 #define LOG_LEVEL 10
 #define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
 #define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
+
+/*
+ * included libs on SO for video compression
+#include <jni.h>
+#include <android/log.h>
+#include <string.h>
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+*/
 
 /**/
 char *gFileName;	  //the file name of the video
@@ -154,5 +164,65 @@ JNIEXPORT jintArray JNICALL Java_roman10_ffmpegTest_VideoBrowser_naGetVideoResol
 }
 
 
+/*void Java_com_example_yourapp_yourJavaClass_compressFile(JNIEnv *env, jobject obj, jstring jInputPath, jstring jInputFormat, jstring jOutputPath, jstring JOutputFormat){
+  // One-time FFmpeg initialization
+  av_register_all();
+  avformat_network_init();
+  avcodec_register_all();
+
+  const char* inputPath = (*env)->GetStringUTFChars(env, jInputPath, NULL);
+  const char* outputPath = (*env)->GetStringUTFChars(env, jOutputPath, NULL);
+  // format names are hints. See available options on your host machine via $ ffmpeg -formats
+  const char* inputFormat = (*env)->GetStringUTFChars(env, jInputFormat, NULL);
+  const char* outputFormat = (*env)->GetStringUTFChars(env, jOutputFormat, NULL);
+
+  AVFormatContext *outputFormatContext = avFormatContextForOutputPath(outputPath, outputFormat);
+  AVFormatContext *inputFormatContext = avFormatContextForInputPath(inputPath, inputFormat  not necessary since file can be inspected );
+
+  copyAVFormatContext(&outputFormatContext, &inputFormatContext);
+  // Modify outputFormatContext->codec parameters per your liking
+  // See http://ffmpeg.org/doxygen/trunk/structAVCodecContext.html
+
+  int result = openFileForWriting(outputFormatContext, outputPath);
+  if(result < 0){
+      LOGE("openFileForWriting error: %d", result);
+  }
+
+  writeFileHeader(outputFormatContext);
+
+  // Copy input to output frame by frame
+  AVPacket *inputPacket;
+  inputPacket = av_malloc(sizeof(AVPacket));
+
+  int continueRecording = 1;
+  int avReadResult = 0;
+  int writeFrameResult = 0;
+  int frameCount = 0;
+  while(continueRecording == 1){
+      avReadResult = av_read_frame(inputFormatContext, inputPacket);
+      frameCount++;
+      if(avReadResult != 0){
+        if (avReadResult != AVERROR_EOF) {
+            LOGE("av_read_frame error: %s", stringForAVErrorNumber(avReadResult));
+        }else{
+            LOGI("End of input file");
+        }
+        continueRecording = 0;
+      }
+
+      AVStream *outStream = outputFormatContext->streams[inputPacket->stream_index];
+      writeFrameResult = av_interleaved_write_frame(outputFormatContext, inputPacket);
+      if(writeFrameResult < 0){
+          LOGE("av_interleaved_write_frame error: %s", stringForAVErrorNumber(avReadResult));
+      }
+  }
+
+  // Finalize the output file
+  int writeTrailerResult = writeFileTrailer(outputFormatContext);
+  if(writeTrailerResult < 0){
+      LOGE("av_write_trailer error: %s", stringForAVErrorNumber(writeTrailerResult));
+  }
+  LOGI("Wrote trailer");
+}*/
 
 
