@@ -163,11 +163,90 @@ JNIEXPORT jintArray JNICALL Java_roman10_ffmpegTest_VideoBrowser_naGetVideoResol
     return lRes;
 }
 
+// FFInputFile functions
+// Using these to deduce codec parameters from test file
 
-/*void Java_com_example_yourapp_yourJavaClass_compressFile(JNIEnv *env, jobject obj, jstring jInputPath, jstring jInputFormat, jstring jOutputPath, jstring JOutputFormat){
+AVFormatContext* avFormatContextForInputPath(const char *inputPath, const char *inputFormatString){
+    // You can override the detected input format
+    AVFormatContext *inputFormatContext = NULL;
+    AVInputFormat *inputFormat = NULL;
+    //AVDictionary *inputOptions = NULL;
+
+    if (inputFormatString) {
+        inputFormat = av_find_input_format(inputFormatString);
+        // LOGI("avFormatContextForInputPath got inputFormat from string");
+        LOGI("avFormatContextForInputPath got inputFormat from string %s ", "hello6");
+    }
+    // LOGI("avFormatContextForInputPath post av_Find_input_format");
+    LOGI("avFormatContextForInputPath post av_Find_input_format %s", "hello7");
+    // It's possible to send more options to the parser
+    // av_dict_set(&inputOptions, "video_size", "640x480", 0);
+    // av_dict_set(&inputOptions, "pixel_format", "rgb24", 0);
+    // av_dict_free(&inputOptions); // Don't forget to free
+
+    LOGI("avFormatContextForInputPath pre avformat_open_input path: %s format: %s", inputPath, inputFormatString);
+    int openInputResult = avformat_open_input(&inputFormatContext, inputPath, inputFormat, /*&inputOptions*/ NULL);
+    // LOGI("avFormatContextForInputPath avformat_open_input result: %d", openInputResult);
+    LOGI("avFormatContextForInputPath avformat_open_input result: %s", "hello8");
+    if (openInputResult != 0) {
+        // LOGE("avformat_open_input failed: %s", stringForAVErrorNumber(openInputResult));
+    	LOGE("avformat_open_input failed: %s", "hello10");
+        avformat_close_input(&inputFormatContext);
+        return NULL;
+    }
+
+    int streamInfoResult = avformat_find_stream_info(inputFormatContext, NULL);
+    // LOGI("avFormatContextForInputPath avformat_find_stream_info result: %d", streamInfoResult);
+    LOGI("avFormatContextForInputPath avformat_find_stream_info result: %s", "hello9");
+    if (streamInfoResult < 0) {
+        avformat_close_input(&inputFormatContext);
+        // LOGE("avformat_find_stream_info failed: %s", stringForAVErrorNumber(openInputResult));
+        LOGE("avformat_find_stream_info failed: %s", "hello11");
+        return NULL;
+    }
+    return inputFormatContext;
+}
+
+// FFOutputFile functions
+
+AVFormatContext* avFormatContextForOutputPath(const char *path, const char *formatName){
+    AVFormatContext *outputFormatContext;
+    LOGI("avFormatContextForOutputPath format: %s path: %s", formatName, path);
+    int openOutputValue = avformat_alloc_output_context2(&outputFormatContext, NULL, formatName, path);
+    if (openOutputValue < 0) {
+        avformat_free_context(outputFormatContext);
+    }
+    return outputFormatContext;
+}
+
+int openFileForWriting(AVFormatContext *avfc, const char *path){
+    if (!(avfc->oformat->flags & AVFMT_NOFILE)) {
+        return avio_open(&avfc->pb, path, AVIO_FLAG_WRITE);
+    }
+    return -42;
+}
+
+int writeFileHeader(AVFormatContext *avfc){
+    AVDictionary *options = NULL;
+
+    // Write header for output file
+    int writeHeaderResult = avformat_write_header(avfc, &options);
+    if (writeHeaderResult < 0) {
+        av_dict_free(&options);
+    }
+    av_dict_free(&options);
+    return writeHeaderResult;
+}
+
+int writeFileTrailer(AVFormatContext *avfc){
+    return av_write_trailer(avfc);
+}
+
+
+void Java_com_example_yourapp_yourJavaClass_compressFile(JNIEnv *env, jobject obj, jstring jInputPath, jstring jInputFormat, jstring jOutputPath, jstring jOutputFormat){
   // One-time FFmpeg initialization
   av_register_all();
-  avformat_network_init();
+  // avformat_network_init();
   avcodec_register_all();
 
   const char* inputPath = (*env)->GetStringUTFChars(env, jInputPath, NULL);
@@ -177,7 +256,7 @@ JNIEXPORT jintArray JNICALL Java_roman10_ffmpegTest_VideoBrowser_naGetVideoResol
   const char* outputFormat = (*env)->GetStringUTFChars(env, jOutputFormat, NULL);
 
   AVFormatContext *outputFormatContext = avFormatContextForOutputPath(outputPath, outputFormat);
-  AVFormatContext *inputFormatContext = avFormatContextForInputPath(inputPath, inputFormat  not necessary since file can be inspected );
+  AVFormatContext *inputFormatContext = avFormatContextForInputPath(inputPath, inputFormat ); //not necessary since file can be inspected
 
   copyAVFormatContext(&outputFormatContext, &inputFormatContext);
   // Modify outputFormatContext->codec parameters per your liking
@@ -185,7 +264,8 @@ JNIEXPORT jintArray JNICALL Java_roman10_ffmpegTest_VideoBrowser_naGetVideoResol
 
   int result = openFileForWriting(outputFormatContext, outputPath);
   if(result < 0){
-      LOGE("openFileForWriting error: %d", result);
+      // LOGE("openFileForWriting error: %d", result);
+	  LOGE("openFileForWriting error: %s", "hello1");
   }
 
   writeFileHeader(outputFormatContext);
@@ -203,9 +283,11 @@ JNIEXPORT jintArray JNICALL Java_roman10_ffmpegTest_VideoBrowser_naGetVideoResol
       frameCount++;
       if(avReadResult != 0){
         if (avReadResult != AVERROR_EOF) {
-            LOGE("av_read_frame error: %s", stringForAVErrorNumber(avReadResult));
+            // LOGE("av_read_frame error: %s", stringForAVErrorNumber(avReadResult));
+        	LOGE("av_read_frame error: %s", "hello 2");
         }else{
-            LOGI("End of input file");
+            // LOGI("End of input file");
+        	LOGI("End of input file %s", "hello3");
         }
         continueRecording = 0;
       }
@@ -213,16 +295,43 @@ JNIEXPORT jintArray JNICALL Java_roman10_ffmpegTest_VideoBrowser_naGetVideoResol
       AVStream *outStream = outputFormatContext->streams[inputPacket->stream_index];
       writeFrameResult = av_interleaved_write_frame(outputFormatContext, inputPacket);
       if(writeFrameResult < 0){
-          LOGE("av_interleaved_write_frame error: %s", stringForAVErrorNumber(avReadResult));
+          // LOGE("av_interleaved_write_frame error: %s", stringForAVErrorNumber(avReadResult));
+    	  LOGE("av_interleaved_write_frame error: %s", "hello3");
       }
   }
 
   // Finalize the output file
   int writeTrailerResult = writeFileTrailer(outputFormatContext);
   if(writeTrailerResult < 0){
-      LOGE("av_write_trailer error: %s", stringForAVErrorNumber(writeTrailerResult));
+      // LOGE("av_write_trailer error: %s", stringForAVErrorNumber(writeTrailerResult));
+	  LOGE("av_write_trailer error: %s", "hello4");
   }
-  LOGI("Wrote trailer");
-}*/
+  // LOGI("Wrote trailer");
+  LOGI("Wrote trailer %s" , "hello5");
+}
 
+void copyAVFormatContext(AVFormatContext **dest, AVFormatContext **source){
+    int numStreams = (*source)->nb_streams;
+    // LOGI("copyAVFormatContext source has %d streams", numStreams);
+    LOGI("copyAVFormatContext source has %s streams", "hello12");
+    // LOGI("codec_id note: AAC : %d, H264 : %d", CODEC_ID_AAC, CODEC_ID_H264);
+    LOGI("codec_id note: AAC : %d, H264 : %s", "hello13");
+    // LOGI("sample_fmot note: S16: %d Float: %d", AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_FLT);
+    LOGI("sample_fmot note: S16: %d Float: %s", "hello14");
+    int i;
+    for (i = 0; i < numStreams; i++) {
+        // Get input stream
+        AVStream *inputStream = (*source)->streams[i];
+        AVCodecContext *inputCodecContext = inputStream->codec;
 
+        // Add new stream to output with codec from input stream
+        AVStream *outputStream = avformat_new_stream(*dest, inputCodecContext->codec);
+        AVCodecContext *outputCodecContext = outputStream->codec;
+
+        // Copy input stream's codecContext for output stream's codecContext
+        avcodec_copy_context(outputCodecContext, inputCodecContext);
+
+        LOGI("copyAVFormatContext Copied stream %d with codec_id %i sample_fmt %s", i, inputCodecContext->codec_id, av_get_sample_fmt_name(inputCodecContext->sample_fmt));
+
+    }
+}
