@@ -46,12 +46,12 @@ av_cold int ff_mjpeg_encode_init(MpegEncContext *s)
 
     if (s->width > 65500 || s->height > 65500) {
         av_log(s, AV_LOG_ERROR, "JPEG does not support resolutions above 65500x65500\n");
-        return -1;
+        return AVERROR(EINVAL);
     }
 
     m = av_malloc(sizeof(MJpegContext));
     if (!m)
-        return -1;
+        return AVERROR(ENOMEM);
 
     s->min_qcoeff=-1023;
     s->max_qcoeff= 1023;
@@ -111,6 +111,7 @@ static void jpeg_table_header(MpegEncContext *s)
     int i, j, size;
     uint8_t *ptr;
 
+    if (s->avctx->codec_id != AV_CODEC_ID_LJPEG) {
     /* quant matrixes */
     put_marker(p, DQT);
 #ifdef TWOMATRIXES
@@ -132,6 +133,7 @@ static void jpeg_table_header(MpegEncContext *s)
         put_bits(p, 8, s->chroma_intra_matrix[j]);
     }
 #endif
+    }
 
     if(s->avctx->active_thread_type & FF_THREAD_SLICE){
         put_marker(p, DRI);
@@ -496,24 +498,31 @@ static int amv_encode_picture(AVCodecContext *avctx, AVPacket *pkt,
 
 {
     MpegEncContext *s = avctx->priv_data;
-    AVFrame pic = *pic_arg;
-    int i;
+    AVFrame *pic;
+    int i, ret;
 
     //CODEC_FLAG_EMU_EDGE have to be cleared
     if(s->avctx->flags & CODEC_FLAG_EMU_EDGE)
-        return -1;
+        return AVERROR(EINVAL);
 
+    pic = av_frame_alloc();
+    if (!pic)
+        return AVERROR(ENOMEM);
+    av_frame_ref(pic, pic_arg);
     //picture should be flipped upside-down
     for(i=0; i < 3; i++) {
-        pic.data[i] += (pic.linesize[i] * (s->mjpeg_vsample[i] * (8 * s->mb_height -((s->height/V_MAX)&7)) - 1 ));
-        pic.linesize[i] *= -1;
+        pic->data[i] += (pic->linesize[i] * (s->mjpeg_vsample[i] * (8 * s->mb_height -((s->height/V_MAX)&7)) - 1 ));
+        pic->linesize[i] *= -1;
     }
-    return ff_MPV_encode_picture(avctx, pkt, &pic, got_packet);
+    ret = ff_MPV_encode_picture(avctx, pkt, pic, got_packet);
+    av_frame_free(&pic);
+    return ret;
 }
 
 #if CONFIG_MJPEG_ENCODER
 AVCodec ff_mjpeg_encoder = {
     .name           = "mjpeg",
+    .long_name      = NULL_IF_CONFIG_SMALL("MJPEG (Motion JPEG)"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_MJPEG,
     .priv_data_size = sizeof(MpegEncContext),
@@ -524,12 +533,12 @@ AVCodec ff_mjpeg_encoder = {
     .pix_fmts       = (const enum AVPixelFormat[]){
         AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ444P, AV_PIX_FMT_NONE
     },
-    .long_name      = NULL_IF_CONFIG_SMALL("MJPEG (Motion JPEG)"),
 };
 #endif
 #if CONFIG_AMV_ENCODER
 AVCodec ff_amv_encoder = {
     .name           = "amv",
+    .long_name      = NULL_IF_CONFIG_SMALL("AMV Video"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_AMV,
     .priv_data_size = sizeof(MpegEncContext),
@@ -539,6 +548,5 @@ AVCodec ff_amv_encoder = {
     .pix_fmts       = (const enum AVPixelFormat[]){
         AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_NONE
     },
-    .long_name      = NULL_IF_CONFIG_SMALL("AMV Video"),
 };
 #endif

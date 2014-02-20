@@ -41,7 +41,6 @@
 
 typedef struct OggVorbisEncContext {
     AVClass *av_class;                  /**< class for AVOptions            */
-    AVFrame frame;
     vorbis_info vi;                     /**< vorbis_info used during init   */
     vorbis_dsp_state vd;                /**< DSP state used for analysis    */
     vorbis_block vb;                    /**< vorbis_block used for analysis */
@@ -363,6 +362,7 @@ static int oggvorbis_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 
 AVCodec ff_libvorbis_encoder = {
     .name           = "libvorbis",
+    .long_name      = NULL_IF_CONFIG_SMALL("libvorbis"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_VORBIS,
     .priv_data_size = sizeof(OggVorbisEncContext),
@@ -372,7 +372,6 @@ AVCodec ff_libvorbis_encoder = {
     .capabilities   = CODEC_CAP_DELAY,
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_FLTP,
                                                       AV_SAMPLE_FMT_NONE },
-    .long_name      = NULL_IF_CONFIG_SMALL("libvorbis"),
     .priv_class     = &vorbis_class,
     .defaults       = defaults,
 };

@@ -291,7 +291,7 @@ static int avi_write_header(AVFormatContext *s)
             // are not (yet) supported.
             if (stream->codec_id != AV_CODEC_ID_XSUB) break;
         case AVMEDIA_TYPE_VIDEO:
-            ff_put_bmp_header(pb, stream, ff_codec_bmp_tags, 0);
+            ff_put_bmp_header(pb, stream, ff_codec_bmp_tags, 0, 0);
             break;
         case AVMEDIA_TYPE_AUDIO:
             if ((ret = ff_put_wav_header(pb, stream)) < 0) {
@@ -567,8 +567,11 @@ static int avi_write_packet(AVFormatContext *s, AVPacket *pkt)
         int id = idx->entry % AVI_INDEX_CLUSTER_SIZE;
         if (idx->ents_allocated <= idx->entry) {
             idx->cluster = av_realloc_f(idx->cluster, sizeof(void*), cl+1);
-            if (!idx->cluster)
+            if (!idx->cluster) {
+                idx->ents_allocated = 0;
+                idx->entry = 0;
                 return AVERROR(ENOMEM);
+            }
             idx->cluster[cl] = av_malloc(AVI_INDEX_CLUSTER_SIZE*sizeof(AVIIentry));
             if (!idx->cluster[cl])
                 return AVERROR(ENOMEM);
@@ -636,7 +639,7 @@ static int avi_write_trailer(AVFormatContext *s)
     for (i=0; i<s->nb_streams; i++) {
          AVIStream *avist= s->streams[i]->priv_data;
          for (j=0; j<avist->indexes.ents_allocated/AVI_INDEX_CLUSTER_SIZE; j++)
-              av_free(avist->indexes.cluster[j]);
+              av_freep(&avist->indexes.cluster[j]);
          av_freep(&avist->indexes.cluster);
          avist->indexes.ents_allocated = avist->indexes.entry = 0;
     }

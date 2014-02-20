@@ -47,9 +47,6 @@ typedef struct SchroEncoderParams {
     /** Schroedinger frame format */
     SchroFrameFormat frame_format;
 
-    /** frame being encoded */
-    AVFrame picture;
-
     /** frame size */
     int frame_size;
 
@@ -162,7 +159,9 @@ static av_cold int libschroedinger_encode_init(AVCodecContext *avctx)
                                                     avctx->width,
                                                     avctx->height);
 
-    avctx->coded_frame = &p_schro_params->picture;
+    avctx->coded_frame = av_frame_alloc();
+    if (!avctx->coded_frame)
+        return AVERROR(ENOMEM);
 
     if (!avctx->gop_size) {
         schro_encoder_setting_set_double(p_schro_params->encoder,
@@ -427,12 +426,15 @@ static int libschroedinger_encode_close(AVCodecContext *avctx)
     /* Free the video format structure. */
     av_freep(&p_schro_params->format);
 
+    av_frame_free(&avctx->coded_frame);
+
     return 0;
 }
 
 
 AVCodec ff_libschroedinger_encoder = {
     .name           = "libschroedinger",
+    .long_name      = NULL_IF_CONFIG_SMALL("libschroedinger Dirac 2.2"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_DIRAC,
     .priv_data_size = sizeof(SchroEncoderParams),
@@ -443,5 +445,4 @@ AVCodec ff_libschroedinger_encoder = {
     .pix_fmts       = (const enum AVPixelFormat[]){
         AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV422P, AV_PIX_FMT_YUV444P, AV_PIX_FMT_NONE
     },
-    .long_name      = NULL_IF_CONFIG_SMALL("libschroedinger Dirac 2.2"),
 };

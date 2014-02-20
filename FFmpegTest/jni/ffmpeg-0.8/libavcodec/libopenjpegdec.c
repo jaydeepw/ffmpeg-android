@@ -172,7 +172,7 @@ static inline void libopenjpeg_copy_to_packed16(AVFrame *picture, opj_image_t *i
     int index, x, y, c;
     int adjust[4];
     for (x = 0; x < image->numcomps; x++)
-        adjust[x] = FFMAX(FFMIN(16 - image->comps[x].prec, 8), 0);
+        adjust[x] = FFMAX(FFMIN(av_pix_fmt_desc_get(picture->format)->comp[x].depth_minus1 + 1 - image->comps[x].prec, 8), 0);
 
     for (y = 0; y < picture->height; y++) {
         index = y*picture->width;
@@ -207,12 +207,16 @@ static inline void libopenjpeg_copyto16(AVFrame *picture, opj_image_t *image) {
     int *comp_data;
     uint16_t *img_ptr;
     int index, x, y;
+    int adjust[4];
+    for (x = 0; x < image->numcomps; x++)
+        adjust[x] = FFMAX(FFMIN(av_pix_fmt_desc_get(picture->format)->comp[x].depth_minus1 + 1 - image->comps[x].prec, 8), 0);
+
     for (index = 0; index < image->numcomps; index++) {
         comp_data = image->comps[index].data;
         for (y = 0; y < image->comps[index].h; y++) {
             img_ptr = (uint16_t*) (picture->data[index] + y * picture->linesize[index]);
             for (x = 0; x < image->comps[index].w; x++) {
-                *img_ptr = *comp_data;
+                *img_ptr = *comp_data << adjust[index];
                 img_ptr++;
                 comp_data++;
             }
@@ -401,6 +405,7 @@ static const AVClass openjpeg_class = {
 
 AVCodec ff_libopenjpeg_decoder = {
     .name             = "libopenjpeg",
+    .long_name        = NULL_IF_CONFIG_SMALL("OpenJPEG JPEG 2000"),
     .type             = AVMEDIA_TYPE_VIDEO,
     .id               = AV_CODEC_ID_JPEG2000,
     .priv_data_size   = sizeof(LibOpenJPEGContext),
@@ -408,6 +413,5 @@ AVCodec ff_libopenjpeg_decoder = {
     .decode           = libopenjpeg_decode_frame,
     .capabilities     = CODEC_CAP_DR1 | CODEC_CAP_FRAME_THREADS,
     .max_lowres       = 31,
-    .long_name        = NULL_IF_CONFIG_SMALL("OpenJPEG JPEG 2000"),
     .priv_class       = &openjpeg_class,
 };
