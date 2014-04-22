@@ -29,6 +29,11 @@
             <TableRow android:gravity="center" >
 
                 <Button
+                    android:id="@+id/video_browser_btn5"
+                    style="@style/btn_bottommenu"
+                    android:text="Compress" />
+
+                <Button
                     android:id="@+id/video_browser_btn1"
                     style="@style/btn_bottommenu"
                     android:text="Gallery" />
@@ -42,8 +47,6 @@
                     android:id="@+id/video_browser_btn3"
                     style="@style/btn_bottommenu"
                     android:text="All" />
-                
-                
 
                 <Button
                     android:id="@+id/video_browser_btn4"

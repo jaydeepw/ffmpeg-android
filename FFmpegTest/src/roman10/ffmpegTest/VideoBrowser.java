@@ -321,6 +321,17 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 		
 		//bottom menu
 		int l_btnWidth = this.getWindowManager().getDefaultDisplay().getWidth()/4;
+		
+		btn_bottommenu5 = (Button) findViewById(R.id.video_browser_btn5);
+		btn_bottommenu5.setWidth(l_btnWidth);
+		btn_bottommenu5.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				Toast.makeText(mContext, "Compress", Toast.LENGTH_LONG).show();
+				Log.v(TAG, "ready to compress");
+				
+			}
+		});
+		
 		btn_bottommenu1 = (Button) findViewById(R.id.video_browser_btn1);
 		//btn_bottommenu1 = (ActionMenuButton) findViewById(R.id.main_topsecretimport_btn1);
 		btn_bottommenu1.setWidth(l_btnWidth);
@@ -365,22 +376,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 			}
 		});
 		
-		btn_bottommenu5 = (Button) findViewById(R.id.video_browser_btn5);
-		btn_bottommenu5.setWidth(l_btnWidth);
-		btn_bottommenu5.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				/*btn_bottommenu1.setEnabled(true);
-				btn_bottommenu2.setEnabled(true);
-				btn_bottommenu3.setEnabled(false);*/
-				Log.v(TAG, "ready to compress");
-				/*currentFocusedBtn = 4;
-				last_list_view_pos = 0;
-				media_browser_load_option = 1;
-				last_media_browser_load_option = media_browser_load_option;
-				loadVideosFromDirectory("/sdcard/");*/
-				
-			}
-		});
+
 		
 		media_browser_load_option = last_media_browser_load_option;
 		if (media_browser_load_option==2) {
