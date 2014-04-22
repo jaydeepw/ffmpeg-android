@@ -81,7 +81,6 @@ OBJS = adler32.o                                                        \
        eval.o                                                           \
        fifo.o                                                           \
        file.o                                                           \
-       file_open.o                                                      \
        float_dsp.o                                                      \
        frame.o                                                          \
        hash.o                                                           \
@@ -161,9 +160,6 @@ TESTPROGS = adler32                                                     \
 
 TESTPROGS-$(HAVE_LZO1X_999_COMPRESS) += lzo
 
-TOOLS = crypto_bench ffhash ffeval ffescape
-
-tools/crypto_bench$(EXESUF): ELIBS += $(if $(VERSUS),$(subst +, -l,+$(VERSUS)),)
-tools/crypto_bench$(EXESUF): CFLAGS += -DUSE_EXT_LIBS=0$(if $(VERSUS),$(subst +,+USE_,+$(VERSUS)),)
+TOOLS = ffhash ffeval ffescape
 
 $(SUBDIR)lzo-test$(EXESUF): ELIBS = -llzo2

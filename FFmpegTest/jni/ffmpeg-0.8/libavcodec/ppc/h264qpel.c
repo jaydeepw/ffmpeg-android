@@ -288,9 +288,7 @@ av_cold void ff_h264qpel_init_ppc(H264QpelContext *c, int bit_depth)
 #if HAVE_ALTIVEC
     const int high_bit_depth = bit_depth > 8;
 
-    if (!(av_get_cpu_flags() & AV_CPU_FLAG_ALTIVEC))
-        return;
-
+    if (av_get_cpu_flags() & AV_CPU_FLAG_ALTIVEC) {
     if (!high_bit_depth) {
 #define dspfunc(PFX, IDX, NUM) \
         c->PFX ## _pixels_tab[IDX][ 0] = PFX ## NUM ## _mc00_altivec; \
@@ -313,6 +311,7 @@ av_cold void ff_h264qpel_init_ppc(H264QpelContext *c, int bit_depth)
         dspfunc(put_h264_qpel, 0, 16);
         dspfunc(avg_h264_qpel, 0, 16);
 #undef dspfunc
+    }
     }
 #endif /* HAVE_ALTIVEC */
 }

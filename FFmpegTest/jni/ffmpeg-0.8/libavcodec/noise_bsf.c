@@ -49,7 +49,7 @@ static int noise(AVBitStreamFilterContext *bsfc, AVCodecContext *avctx, const ch
 }
 
 AVBitStreamFilter ff_noise_bsf={
-    .name           = "noise",
-    .priv_data_size = sizeof(int),
-    .filter         = noise,
+    "noise",
+    sizeof(int),
+    noise,
 };

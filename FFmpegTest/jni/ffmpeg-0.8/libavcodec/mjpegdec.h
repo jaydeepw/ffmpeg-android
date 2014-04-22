@@ -65,8 +65,6 @@ typedef struct MJpegDecodeContext {
     int rct;            /* standard rct */
     int pegasus_rct;    /* pegasus reversible colorspace transform */
     int bits;           /* bits per component */
-    int colr;
-    int xfrm;
 
     int maxval;
     int near;         ///< near lossless bound (si 0 for lossless)
@@ -90,7 +88,7 @@ typedef struct MJpegDecodeContext {
     int h_max, v_max; /* maximum h and v counts */
     int quant_index[4];   /* quant table index for each component */
     int last_dc[MAX_COMPONENTS]; /* last DEQUANTIZED dc (XXX: am I right to do that ?) */
-    AVFrame *picture; /* picture structure */
+    AVFrame picture; /* picture structure */
     AVFrame *picture_ptr; /* pointer to picture structure */
     int got_picture;                                ///< we found a SOF and picture is valid, too.
     int linesize[MAX_COMPONENTS];                   ///< linesize << interlaced
@@ -119,7 +117,6 @@ typedef struct MJpegDecodeContext {
     unsigned int ljpeg_buffer_size;
 
     int extern_huff;
-    AVDictionary *exif_metadata;
 } MJpegDecodeContext;
 
 int ff_mjpeg_decode_init(AVCodecContext *avctx);

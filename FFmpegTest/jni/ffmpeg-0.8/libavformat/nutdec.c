@@ -243,8 +243,6 @@ static int decode_main_header(NUTContext *nut)
 
     GET_V(nut->time_base_count, tmp > 0 && tmp < INT_MAX / sizeof(AVRational));
     nut->time_base = av_malloc(nut->time_base_count * sizeof(AVRational));
-    if (!nut->time_base)
-        return AVERROR(ENOMEM);
 
     for (i = 0; i < nut->time_base_count; i++) {
         GET_V(nut->time_base[i].num, tmp > 0 && tmp < (1ULL << 31));
@@ -340,9 +338,7 @@ static int decode_main_header(NUTContext *nut)
         return AVERROR_INVALIDDATA;
     }
 
-    nut->stream = av_calloc(stream_count, sizeof(StreamContext));
-    if (!nut->stream)
-        return AVERROR(ENOMEM);
+    nut->stream = av_mallocz(sizeof(StreamContext) * stream_count);
     for (i = 0; i < stream_count; i++)
         avformat_new_stream(s, NULL);
 
@@ -415,8 +411,8 @@ static int decode_stream_header(NUTContext *nut)
 
     GET_V(st->codec->extradata_size, tmp < (1 << 30));
     if (st->codec->extradata_size) {
-        if (ff_alloc_extradata(st->codec, st->codec->extradata_size))
-            return AVERROR(ENOMEM);
+        st->codec->extradata = av_mallocz(st->codec->extradata_size +
+                                          FF_INPUT_BUFFER_PADDING_SIZE);
         avio_read(bc, st->codec->extradata, st->codec->extradata_size);
     }
 
@@ -558,7 +554,6 @@ static int decode_syncpoint(NUTContext *nut, int64_t *ts, int64_t *back_ptr)
     AVIOContext *bc    = s->pb;
     int64_t end;
     uint64_t tmp;
-    int ret;
 
     nut->last_syncpoint_pos = avio_tell(bc) - 8;
 
@@ -580,9 +575,7 @@ static int decode_syncpoint(NUTContext *nut, int64_t *ts, int64_t *back_ptr)
 
     *ts = tmp / nut->time_base_count *
           av_q2d(nut->time_base[tmp % nut->time_base_count]) * AV_TIME_BASE;
-
-    if ((ret = ff_nut_add_sp(nut, nut->last_syncpoint_pos, *back_ptr, *ts)) < 0)
-        return ret;
+    ff_nut_add_sp(nut, nut->last_syncpoint_pos, *back_ptr, *ts);
 
     return 0;
 }
@@ -635,12 +628,8 @@ static int find_and_decode_index(NUTContext *nut)
     s->duration_estimation_method = AVFMT_DURATION_FROM_PTS;
 
     GET_V(syncpoint_count, tmp < INT_MAX / 8 && tmp > 0);
-    syncpoints   = av_malloc_array(syncpoint_count, sizeof(int64_t));
-    has_keyframe = av_malloc_array(syncpoint_count + 1, sizeof(int8_t));
-    if (!syncpoints || !has_keyframe) {
-        ret = AVERROR(ENOMEM);
-        goto fail;
-    }
+    syncpoints   = av_malloc(sizeof(int64_t) *  syncpoint_count);
+    has_keyframe = av_malloc(sizeof(int8_t)  * (syncpoint_count + 1));
     for (i = 0; i < syncpoint_count; i++) {
         syncpoints[i] = ffio_read_varlen(bc);
         if (syncpoints[i] <= 0)

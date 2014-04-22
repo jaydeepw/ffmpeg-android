@@ -164,7 +164,7 @@ static int utvideo_decode_frame(AVCodecContext *avctx, void *data,
     }
 
     *got_frame = 1;
-    av_frame_move_ref((AVFrame*)data, pic);
+    *(AVFrame *)data = *pic;
 
     return avpkt->size;
 }

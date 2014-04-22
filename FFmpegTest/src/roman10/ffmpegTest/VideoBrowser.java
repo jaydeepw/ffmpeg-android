@@ -18,6 +18,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -123,6 +124,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 	private static int last_media_browser_load_option = 2;
 	private static int number_of_icons = 0;
 	private static final String upOneLevel = "..";
+	protected static final String TAG = VideoBrowser.class.getSimpleName();
 	
 	LoadVideoTask loadTask;
 	private void loadVideosFromDirectory(String _dir) {
@@ -304,6 +306,8 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 	private Button btn_bottommenu1;
 	private Button btn_bottommenu2;
 	private Button btn_bottommenu3;
+	private Button btn_bottommenu5;
+	
 	//private Button btn_bottommenu4;
 	//title bar
 	private TextView text_titlebar_text;
@@ -360,6 +364,24 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 				loadVideosFromDirectory("/sdcard/");
 			}
 		});
+		
+		btn_bottommenu5 = (Button) findViewById(R.id.video_browser_btn5);
+		btn_bottommenu5.setWidth(l_btnWidth);
+		btn_bottommenu5.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				/*btn_bottommenu1.setEnabled(true);
+				btn_bottommenu2.setEnabled(true);
+				btn_bottommenu3.setEnabled(false);*/
+				Log.v(TAG, "ready to compress");
+				/*currentFocusedBtn = 4;
+				last_list_view_pos = 0;
+				media_browser_load_option = 1;
+				last_media_browser_load_option = media_browser_load_option;
+				loadVideosFromDirectory("/sdcard/");*/
+				
+			}
+		});
+		
 		media_browser_load_option = last_media_browser_load_option;
 		if (media_browser_load_option==2) {
 			btn_bottommenu1.setEnabled(false);
@@ -368,6 +390,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 		} else if (media_browser_load_option==1){
 			btn_bottommenu3.setEnabled(false);
 		}
+		
 		loadVideosFromDirectory("/sdcard/");
 	}
 	//refresh the UI when the directoryEntries changes

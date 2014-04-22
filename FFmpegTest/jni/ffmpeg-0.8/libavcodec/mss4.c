@@ -626,23 +626,14 @@ static int mss4_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     return buf_size;
 }
 
-static av_cold int mss4_decode_end(AVCodecContext *avctx)
-{
-    MSS4Context * const c = avctx->priv_data;
-    int i;
-
-    av_frame_free(&c->pic);
-    for (i = 0; i < 3; i++)
-        av_freep(&c->prev_dc[i]);
-    mss4_free_vlcs(c);
-
-    return 0;
-}
-
 static av_cold int mss4_decode_init(AVCodecContext *avctx)
 {
     MSS4Context * const c = avctx->priv_data;
     int i;
+
+    c->pic = av_frame_alloc();
+    if (!c->pic)
+        return AVERROR(ENOMEM);
 
     if (mss4_init_vlcs(c)) {
         av_log(avctx, AV_LOG_ERROR, "Cannot initialise VLCs\n");
@@ -659,20 +650,27 @@ static av_cold int mss4_decode_init(AVCodecContext *avctx)
         }
     }
 
-    c->pic = av_frame_alloc();
-    if (!c->pic) {
-        mss4_decode_end(avctx);
-        return AVERROR(ENOMEM);
-    }
-
     avctx->pix_fmt     = AV_PIX_FMT_YUV444P;
+
+    return 0;
+}
+
+static av_cold int mss4_decode_end(AVCodecContext *avctx)
+{
+    MSS4Context * const c = avctx->priv_data;
+    int i;
+
+    av_frame_free(&c->pic);
+
+    for (i = 0; i < 3; i++)
+        av_freep(&c->prev_dc[i]);
+    mss4_free_vlcs(c);
 
     return 0;
 }
 
 AVCodec ff_mts2_decoder = {
     .name           = "mts2",
-    .long_name      = NULL_IF_CONFIG_SMALL("MS Expression Encoder Screen"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_MTS2,
     .priv_data_size = sizeof(MSS4Context),
@@ -680,4 +678,5 @@ AVCodec ff_mts2_decoder = {
     .close          = mss4_decode_end,
     .decode         = mss4_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
+    .long_name      = NULL_IF_CONFIG_SMALL("MS Expression Encoder Screen"),
 };

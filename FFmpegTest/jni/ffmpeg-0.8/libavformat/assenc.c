@@ -87,7 +87,6 @@ static int write_packet(AVFormatContext *s, AVPacket *pkt)
     } else {
         avio_write(s->pb, pkt->data, pkt->size);
     }
-
     return 0;
 }
 

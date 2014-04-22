@@ -162,7 +162,7 @@ static inline int mpeg4_is_resync(MpegEncContext *s){
     return 0;
 }
 
-static int mpeg4_decode_sprite_trajectory(MpegEncContext *s, GetBitContext *gb)
+static int mpeg4_decode_sprite_trajectory(MpegEncContext * s, GetBitContext *gb)
 {
     int i;
     int a= 2<<s->sprite_warping_accuracy;
@@ -178,8 +178,8 @@ static int mpeg4_decode_sprite_trajectory(MpegEncContext *s, GetBitContext *gb)
     int h= s->height;
     int min_ab;
 
-    if (w <= 0 || h <= 0)
-        return AVERROR_INVALIDDATA;
+    if(w<=0 || h<=0)
+        return -1;
 
     for(i=0; i<s->num_sprite_warping_points; i++){
         int length;
@@ -356,17 +356,6 @@ static int mpeg4_decode_sprite_trajectory(MpegEncContext *s, GetBitContext *gb)
     return 0;
 }
 
-static int decode_new_pred(MpegEncContext *s, GetBitContext *gb){
-    int len = FFMIN(s->time_increment_bits + 3, 15);
-
-    get_bits(gb, len);
-    if (get_bits1(gb))
-        get_bits(gb, len);
-    check_marker(gb, "after new_pred");
-
-    return 0;
-}
-
 /**
  * Decode the next video packet.
  * @return <0 if something went wrong
@@ -428,8 +417,8 @@ int ff_mpeg4_decode_video_packet_header(MpegEncContext *s)
             skip_bits(&s->gb, 3); /* intra dc vlc threshold */
 //FIXME don't just ignore everything
             if(s->pict_type == AV_PICTURE_TYPE_S && s->vol_sprite_usage==GMC_SPRITE){
-                if (mpeg4_decode_sprite_trajectory(s, &s->gb) < 0)
-                    return AVERROR_INVALIDDATA;
+                if(mpeg4_decode_sprite_trajectory(s, &s->gb) < 0)
+                    return -1;
                 av_log(s->avctx, AV_LOG_ERROR, "untested\n");
             }
 
@@ -449,8 +438,7 @@ int ff_mpeg4_decode_video_packet_header(MpegEncContext *s)
             }
         }
     }
-    if (s->new_pred)
-        decode_new_pred(s, &s->gb);
+    //FIXME new-pred stuff
 
     return 0;
 }
@@ -1638,11 +1626,11 @@ static int decode_vol_header(MpegEncContext *s, GetBitContext *gb){
 
     if (s->shape != BIN_ONLY_SHAPE) {
         if (s->shape == RECT_SHAPE) {
-            check_marker(gb, "before width");
+            skip_bits1(gb);   /* marker */
             width = get_bits(gb, 13);
-            check_marker(gb, "before height");
+            skip_bits1(gb);   /* marker */
             height = get_bits(gb, 13);
-            check_marker(gb, "after height");
+            skip_bits1(gb);   /* marker */
             if(width && height && !(s->width && s->codec_tag == AV_RL32("MP4S"))){ /* they should be non zero but who knows ... */
                 if (s->width && s->height &&
                     (s->width != width || s->height != height))
@@ -1912,9 +1900,7 @@ static int decode_user_data(MpegEncContext *s, GetBitContext *gb){
         s->divx_build= build;
         s->divx_packed= e==3 && last=='p';
         if(s->divx_packed && !s->showed_packed_warning) {
-            av_log(s->avctx, AV_LOG_INFO, "Video uses a non-standard and "
-                   "wasteful way to store B-frames ('packed B-frames'). "
-                   "Consider using a tool like VirtualDub or avidemux to fix it.\n");
+            av_log(s->avctx, AV_LOG_WARNING, "Invalid and inefficient vfw-avi packed B frames detected\n");
             s->showed_packed_warning=1;
         }
     }
@@ -2038,9 +2024,6 @@ static int decode_vop_header(MpegEncContext *s, GetBitContext *gb){
             av_log(s->avctx, AV_LOG_ERROR, "vop not coded\n");
         return FRAME_SKIPPED;
     }
-    if (s->new_pred)
-        decode_new_pred(s, gb);
-
     if (s->shape != BIN_ONLY_SHAPE && ( s->pict_type == AV_PICTURE_TYPE_P
                           || (s->pict_type == AV_PICTURE_TYPE_S && s->vol_sprite_usage==GMC_SPRITE))) {
         /* rounding type for motion estimation */
@@ -2100,8 +2083,8 @@ static int decode_vop_header(MpegEncContext *s, GetBitContext *gb){
      }
 
      if(s->pict_type == AV_PICTURE_TYPE_S && (s->vol_sprite_usage==STATIC_SPRITE || s->vol_sprite_usage==GMC_SPRITE)){
-         if (mpeg4_decode_sprite_trajectory(s, gb) < 0)
-             return AVERROR_INVALIDDATA;
+         if(mpeg4_decode_sprite_trajectory(s, gb) < 0)
+             return -1;
          if(s->sprite_brightness_change) av_log(s->avctx, AV_LOG_ERROR, "sprite_brightness_change not supported\n");
          if(s->vol_sprite_usage==STATIC_SPRITE) av_log(s->avctx, AV_LOG_ERROR, "static sprite not supported\n");
      }
@@ -2368,7 +2351,6 @@ static const AVClass mpeg4_vdpau_class = {
 
 AVCodec ff_mpeg4_decoder = {
     .name                  = "mpeg4",
-    .long_name             = NULL_IF_CONFIG_SMALL("MPEG-4 part 2"),
     .type                  = AVMEDIA_TYPE_VIDEO,
     .id                    = AV_CODEC_ID_MPEG4,
     .priv_data_size        = sizeof(MpegEncContext),
@@ -2380,6 +2362,7 @@ AVCodec ff_mpeg4_decoder = {
                              CODEC_CAP_FRAME_THREADS,
     .flush                 = ff_mpeg_flush,
     .max_lowres            = 3,
+    .long_name             = NULL_IF_CONFIG_SMALL("MPEG-4 part 2"),
     .pix_fmts              = ff_h263_hwaccel_pixfmt_list_420,
     .profiles              = NULL_IF_CONFIG_SMALL(mpeg4_video_profiles),
     .update_thread_context = ONLY_IF_THREADS_ENABLED(ff_mpeg_update_thread_context),
@@ -2390,7 +2373,6 @@ AVCodec ff_mpeg4_decoder = {
 #if CONFIG_MPEG4_VDPAU_DECODER
 AVCodec ff_mpeg4_vdpau_decoder = {
     .name           = "mpeg4_vdpau",
-    .long_name      = NULL_IF_CONFIG_SMALL("MPEG-4 part 2 (VDPAU)"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_MPEG4,
     .priv_data_size = sizeof(MpegEncContext),
@@ -2399,6 +2381,7 @@ AVCodec ff_mpeg4_vdpau_decoder = {
     .decode         = ff_h263_decode_frame,
     .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_TRUNCATED | CODEC_CAP_DELAY |
                       CODEC_CAP_HWACCEL_VDPAU,
+    .long_name      = NULL_IF_CONFIG_SMALL("MPEG-4 part 2 (VDPAU)"),
     .pix_fmts       = (const enum AVPixelFormat[]){ AV_PIX_FMT_VDPAU_MPEG4,
                                                   AV_PIX_FMT_NONE },
     .priv_class     = &mpeg4_vdpau_class,

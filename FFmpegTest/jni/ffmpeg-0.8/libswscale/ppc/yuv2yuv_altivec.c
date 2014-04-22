@@ -24,12 +24,9 @@
 #include <inttypes.h>
 
 #include "config.h"
-#include "libavutil/attributes.h"
-#include "libavutil/cpu.h"
 #include "libswscale/swscale.h"
 #include "libswscale/swscale_internal.h"
-
-#if HAVE_ALTIVEC
+#include "libavutil/cpu.h"
 
 static int yv12toyuy2_unscaled_altivec(SwsContext *c, const uint8_t *src[],
                                        int srcStride[], int srcSliceY,
@@ -182,23 +179,16 @@ static int yv12touyvy_unscaled_altivec(SwsContext *c, const uint8_t *src[],
     return srcSliceH;
 }
 
-#endif /* HAVE_ALTIVEC */
-
-av_cold void ff_get_unscaled_swscale_ppc(SwsContext *c)
+void ff_swscale_get_unscaled_altivec(SwsContext *c)
 {
-#if HAVE_ALTIVEC
-    if (!(av_get_cpu_flags() & AV_CPU_FLAG_ALTIVEC))
-        return;
-
-    if (!(c->srcW & 15) && !(c->flags & SWS_BITEXACT) &&
-        c->srcFormat == AV_PIX_FMT_YUV420P) {
+    if ((av_get_cpu_flags() & AV_CPU_FLAG_ALTIVEC) && !(c->srcW & 15) &&
+        !(c->flags & SWS_BITEXACT) && c->srcFormat == AV_PIX_FMT_YUV420P) {
         enum AVPixelFormat dstFormat = c->dstFormat;
 
         // unscaled YV12 -> packed YUV, we want speed
         if (dstFormat == AV_PIX_FMT_YUYV422)
-            c->swscale = yv12toyuy2_unscaled_altivec;
+            c->swScale = yv12toyuy2_unscaled_altivec;
         else if (dstFormat == AV_PIX_FMT_UYVY422)
-            c->swscale = yv12touyvy_unscaled_altivec;
+            c->swScale = yv12touyvy_unscaled_altivec;
     }
-#endif /* HAVE_ALTIVEC */
 }

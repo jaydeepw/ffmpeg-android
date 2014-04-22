@@ -1044,10 +1044,8 @@ static int decode_5(SANMVideoContext *ctx)
 #if HAVE_BIGENDIAN
     npixels = ctx->npixels;
     frm = ctx->frm0;
-    while (npixels--) {
-        *frm = av_bswap16(*frm);
-        frm++;
-    }
+    while (npixels--)
+        *frm++ = av_bswap16(*frm);
 #endif
 
     return 0;
@@ -1296,7 +1294,6 @@ static int decode_frame(AVCodecContext *avctx, void *data,
 
 AVCodec ff_sanm_decoder = {
     .name           = "sanm",
-    .long_name      = NULL_IF_CONFIG_SMALL("LucasArts SMUSH video"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_SANM,
     .priv_data_size = sizeof(SANMVideoContext),
@@ -1304,4 +1301,5 @@ AVCodec ff_sanm_decoder = {
     .close          = decode_end,
     .decode         = decode_frame,
     .capabilities   = CODEC_CAP_DR1,
+    .long_name      = NULL_IF_CONFIG_SMALL("LucasArts SMUSH video"),
 };

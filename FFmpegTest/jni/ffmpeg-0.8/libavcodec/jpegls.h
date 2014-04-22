@@ -33,6 +33,7 @@
 
 typedef struct JpeglsContext {
     AVCodecContext *avctx;
+    AVFrame picture;
 } JpeglsContext;
 
 typedef struct JLSState {

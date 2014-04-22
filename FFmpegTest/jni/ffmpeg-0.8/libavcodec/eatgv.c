@@ -40,7 +40,7 @@
 
 typedef struct TgvContext {
     AVCodecContext *avctx;
-    AVFrame *last_frame;
+    AVFrame last_frame;
     uint8_t *frame_buffer;
     int width,height;
     uint32_t palette[AVPALETTE_COUNT];
@@ -57,11 +57,7 @@ static av_cold int tgv_decode_init(AVCodecContext *avctx)
     s->avctx         = avctx;
     avctx->time_base = (AVRational){1, 15};
     avctx->pix_fmt   = AV_PIX_FMT_PAL8;
-
-    s->last_frame = av_frame_alloc();
-    if (!s->last_frame)
-        return AVERROR(ENOMEM);
-
+    avcodec_get_frame_defaults(&s->last_frame);
     return 0;
 }
 
@@ -173,18 +169,12 @@ static int tgv_decode_inter(TgvContext *s, AVFrame *frame,
 
     /* allocate codebook buffers as necessary */
     if (num_mvs > s->num_mvs) {
-        if (av_reallocp_array(&s->mv_codebook, num_mvs, sizeof(*s->mv_codebook))) {
-            s->num_mvs = 0;
-            return AVERROR(ENOMEM);
-        }
+        s->mv_codebook = av_realloc(s->mv_codebook, num_mvs*2*sizeof(int));
         s->num_mvs = num_mvs;
     }
 
     if (num_blocks_packed > s->num_blocks_packed) {
-        if (av_reallocp_array(&s->block_codebook, num_blocks_packed, sizeof(*s->block_codebook))) {
-            s->num_blocks_packed = 0;
-            return AVERROR(ENOMEM);
-        }
+        s->block_codebook = av_realloc(s->block_codebook, num_blocks_packed*16);
         s->num_blocks_packed = num_blocks_packed;
     }
 
@@ -236,8 +226,8 @@ static int tgv_decode_inter(TgvContext *s, AVFrame *frame,
                     continue;
                 }
 
-                src = s->last_frame->data[0] + mx + my * s->last_frame->linesize[0];
-                src_stride = s->last_frame->linesize[0];
+                src = s->last_frame.data[0] + mx + my * s->last_frame.linesize[0];
+                src_stride = s->last_frame.linesize[0];
             } else {
                 int offset = vector - num_mvs;
                 if (offset < num_blocks_raw)
@@ -287,7 +277,7 @@ static int tgv_decode_frame(AVCodecContext *avctx,
         if (s->avctx->width != s->width || s->avctx->height != s->height) {
             avcodec_set_dimensions(s->avctx, s->width, s->height);
             av_freep(&s->frame_buffer);
-            av_frame_unref(s->last_frame);
+            av_frame_unref(&s->last_frame);
         }
 
         pal_count = AV_RL16(&buf[6]);
@@ -324,7 +314,7 @@ static int tgv_decode_frame(AVCodecContext *avctx,
                    s->frame_buffer + y * s->width,
                    s->width);
     } else {
-        if (!s->last_frame->data[0]) {
+        if (!s->last_frame.data[0]) {
             av_log(avctx, AV_LOG_WARNING, "inter frame without corresponding intra frame\n");
             return buf_size;
         }
@@ -336,8 +326,8 @@ static int tgv_decode_frame(AVCodecContext *avctx,
         }
     }
 
-    av_frame_unref(s->last_frame);
-    if ((ret = av_frame_ref(s->last_frame, frame)) < 0)
+    av_frame_unref(&s->last_frame);
+    if ((ret = av_frame_ref(&s->last_frame, frame)) < 0)
         return ret;
 
     *got_frame = 1;
@@ -348,7 +338,7 @@ static int tgv_decode_frame(AVCodecContext *avctx,
 static av_cold int tgv_decode_end(AVCodecContext *avctx)
 {
     TgvContext *s = avctx->priv_data;
-    av_frame_free(&s->last_frame);
+    av_frame_unref(&s->last_frame);
     av_freep(&s->frame_buffer);
     av_free(s->mv_codebook);
     av_free(s->block_codebook);
@@ -357,12 +347,12 @@ static av_cold int tgv_decode_end(AVCodecContext *avctx)
 
 AVCodec ff_eatgv_decoder = {
     .name           = "eatgv",
-    .long_name      = NULL_IF_CONFIG_SMALL("Electronic Arts TGV video"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_TGV,
     .priv_data_size = sizeof(TgvContext),
     .init           = tgv_decode_init,
     .close          = tgv_decode_end,
     .decode         = tgv_decode_frame,
+    .long_name      = NULL_IF_CONFIG_SMALL("Electronic Arts TGV video"),
     .capabilities   = CODEC_CAP_DR1,
 };

@@ -21,7 +21,7 @@
 
 #include "libavcodec/flac.h"
 #include "avformat.h"
-#include "flac_picture.h"
+#include "flacdec.h"
 #include "internal.h"
 #include "rawdec.h"
 #include "oggdec.h"

@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #include "config.h"
 #include "libswscale/rgb2rgb.h"
@@ -68,9 +69,9 @@ DECLARE_ASM_CONST(8, uint64_t, pb_07) = 0x0707070707070707ULL;
 
 #endif /* HAVE_INLINE_ASM */
 
-av_cold SwsFunc ff_yuv2rgb_init_x86(SwsContext *c)
+av_cold SwsFunc ff_yuv2rgb_init_mmx(SwsContext *c)
 {
-#if HAVE_MMX_INLINE
+#if HAVE_INLINE_ASM
     int cpu_flags = av_get_cpu_flags();
 
 #if HAVE_MMXEXT_INLINE
@@ -106,7 +107,7 @@ av_cold SwsFunc ff_yuv2rgb_init_x86(SwsContext *c)
             case AV_PIX_FMT_RGB555: return yuv420_rgb15_MMX;
         }
     }
-#endif /* HAVE_MMX_INLINE */
+#endif /* HAVE_INLINE_ASM */
 
     return NULL;
 }

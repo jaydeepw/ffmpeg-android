@@ -35,6 +35,7 @@
  */
 typedef struct Msvideo1EncContext {
     AVCodecContext *avctx;
+    AVFrame pic;
     AVLFG rnd;
     uint8_t *prev;
 
@@ -57,7 +58,7 @@ enum MSV1Mode{
 };
 
 #define SKIP_PREFIX 0x8400
-#define SKIPS_MAX 0x03FF
+#define SKIPS_MAX 0x0FFF
 #define MKRGB555(in, off) ((in[off] << 10) | (in[off + 1] << 5) | (in[off + 2]))
 
 static const int remap[16] = { 0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15 };
@@ -66,7 +67,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
                                const AVFrame *pict, int *got_packet)
 {
     Msvideo1EncContext * const c = avctx->priv_data;
-    const AVFrame *p = pict;
+    AVFrame * const p = &c->pic;
     uint16_t *src;
     uint8_t *prevptr;
     uint8_t *dst, *buf;
@@ -74,12 +75,12 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     int no_skips = 1;
     int i, j, k, x, y, ret;
     int skips = 0;
-    int quality = 24;
 
     if ((ret = ff_alloc_packet2(avctx, pkt, avctx->width*avctx->height*9 + FF_MIN_BUFFER_SIZE)) < 0)
         return ret;
     dst= buf= pkt->data;
 
+    *p = *pict;
     if(!c->prev)
         c->prev = av_malloc(avctx->width * 3 * (avctx->height + 3));
     prevptr = c->prev + avctx->width * 3 * (FFALIGN(avctx->height, 4) - 1);
@@ -87,6 +88,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     if(c->keyint >= avctx->keyint_min)
         keyframe = 1;
 
+    p->quality = 24;
 
     for(y = 0; y < avctx->height; y += 4){
         for(x = 0; x < avctx->width; x += 4){
@@ -112,7 +114,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
                         bestscore += t*t;
                     }
                 }
-                bestscore /= quality;
+                bestscore /= p->quality;
             }
             // try to find optimal value to fill whole 4x4 block
             score = 0;
@@ -128,7 +130,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
                     }
                 }
             }
-            score /= quality;
+            score /= p->quality;
             score += 2;
             if(score < bestscore){
                 bestscore = score;
@@ -153,7 +155,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
                     }
                 }
             }
-            score /= quality;
+            score /= p->quality;
             score += 6;
             if(score < bestscore){
                 bestscore = score;
@@ -180,7 +182,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
                     }
                 }
             }
-            score /= quality;
+            score /= p->quality;
             score += 18;
             if(score < bestscore){
                 bestscore = score;
@@ -246,6 +248,8 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
         c->keyint = 0;
     else
         c->keyint++;
+    p->pict_type= keyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
+    p->key_frame= keyframe;
     if (keyframe) pkt->flags |= AV_PKT_FLAG_KEY;
     pkt->size = dst - buf;
     *got_packet = 1;
@@ -270,6 +274,8 @@ static av_cold int encode_init(AVCodecContext *avctx)
         return -1;
     }
 
+    avcodec_get_frame_defaults(&c->pic);
+    avctx->coded_frame = (AVFrame*)&c->pic;
     avctx->bits_per_coded_sample = 16;
 
     c->keyint = avctx->keyint_min;
@@ -294,7 +300,6 @@ static av_cold int encode_end(AVCodecContext *avctx)
 
 AVCodec ff_msvideo1_encoder = {
     .name           = "msvideo1",
-    .long_name = NULL_IF_CONFIG_SMALL("Microsoft Video-1"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_MSVIDEO1,
     .priv_data_size = sizeof(Msvideo1EncContext),
@@ -302,4 +307,5 @@ AVCodec ff_msvideo1_encoder = {
     .encode2        = encode_frame,
     .close          = encode_end,
     .pix_fmts = (const enum AVPixelFormat[]){AV_PIX_FMT_RGB555, AV_PIX_FMT_NONE},
+    .long_name = NULL_IF_CONFIG_SMALL("Microsoft Video-1"),
 };

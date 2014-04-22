@@ -1333,9 +1333,11 @@ static int encode_intervals(struct sbg_script *s, AVCodecContext *avc,
         if (edata_size < 0)
             return AVERROR(ENOMEM);
     }
-    if (ff_alloc_extradata(avc, edata_size))
+    edata = av_malloc(edata_size);
+    if (!edata)
         return AVERROR(ENOMEM);
-    edata = avc->extradata;
+    avc->extradata = edata;
+    avc->extradata_size = edata_size;
 
 #define ADD_EDATA32(v) do { AV_WL32(edata, (v)); edata += 4; } while(0)
 #define ADD_EDATA64(v) do { AV_WL64(edata, (v)); edata += 8; } while(0)

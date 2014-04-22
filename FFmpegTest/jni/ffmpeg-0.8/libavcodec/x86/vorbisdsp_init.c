@@ -21,7 +21,6 @@
 #include "config.h"
 #include "libavutil/attributes.h"
 #include "libavutil/cpu.h"
-#include "libavutil/x86/cpu.h"
 #include "libavcodec/vorbisdsp.h"
 
 void ff_vorbis_inverse_coupling_3dnow(float *mag, float *ang,
@@ -32,13 +31,13 @@ void ff_vorbis_inverse_coupling_sse(float *mag, float *ang,
 av_cold void ff_vorbisdsp_init_x86(VorbisDSPContext *dsp)
 {
 #if HAVE_YASM
-    int cpu_flags = av_get_cpu_flags();
+    int mm_flags = av_get_cpu_flags();
 
 #if ARCH_X86_32
-    if (EXTERNAL_AMD3DNOW(cpu_flags))
+    if (mm_flags & AV_CPU_FLAG_3DNOW)
         dsp->vorbis_inverse_coupling = ff_vorbis_inverse_coupling_3dnow;
 #endif /* ARCH_X86_32 */
-    if (EXTERNAL_SSE(cpu_flags))
+    if (mm_flags & AV_CPU_FLAG_SSE)
         dsp->vorbis_inverse_coupling = ff_vorbis_inverse_coupling_sse;
 #endif /* HAVE_YASM */
 }

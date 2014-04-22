@@ -21,9 +21,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "libavutil/intreadwrite.h"
+
 #include "avutil.h"
 #include "common.h"
-#include "intreadwrite.h"
 #include "blowfish.h"
 
 static const uint32_t orig_p[AV_BF_ROUNDS + 2] = {

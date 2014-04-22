@@ -34,7 +34,7 @@
 #include "libavutil/x86/asm.h"
 #include "libavcodec/dct.h"
 
-#if HAVE_MMX_INLINE
+#if HAVE_INLINE_ASM
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -556,10 +556,6 @@ void ff_fdct_mmx(int16_t *block)
     }
 }
 
-#endif /* HAVE_MMX_INLINE */
-
-#if HAVE_MMXEXT_INLINE
-
 void ff_fdct_mmxext(int16_t *block)
 {
     DECLARE_ALIGNED(8, int64_t, align_tmp)[16];
@@ -578,10 +574,6 @@ void ff_fdct_mmxext(int16_t *block)
     }
 }
 
-#endif /* HAVE_MMXEXT_INLINE */
-
-#if HAVE_SSE2_INLINE
-
 void ff_fdct_sse2(int16_t *block)
 {
     DECLARE_ALIGNED(16, int64_t, align_tmp)[16];
@@ -591,4 +583,4 @@ void ff_fdct_sse2(int16_t *block)
     fdct_row_sse2(block1, block);
 }
 
-#endif /* HAVE_SSE2_INLINE */
+#endif /* HAVE_INLINE_ASM */

@@ -1016,7 +1016,6 @@ static av_cold int ipvideo_decode_end(AVCodecContext *avctx)
 
 AVCodec ff_interplay_video_decoder = {
     .name           = "interplayvideo",
-    .long_name      = NULL_IF_CONFIG_SMALL("Interplay MVE video"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_INTERPLAY_VIDEO,
     .priv_data_size = sizeof(IpvideoContext),
@@ -1024,4 +1023,5 @@ AVCodec ff_interplay_video_decoder = {
     .close          = ipvideo_decode_end,
     .decode         = ipvideo_decode_frame,
     .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_PARAM_CHANGE,
+    .long_name      = NULL_IF_CONFIG_SMALL("Interplay MVE video"),
 };

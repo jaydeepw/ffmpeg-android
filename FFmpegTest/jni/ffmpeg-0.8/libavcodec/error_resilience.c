@@ -747,13 +747,13 @@ static int is_intra_more_likely(ERContext *s)
             }
         }
     }
-//      av_log(NULL, AV_LOG_ERROR, "is_intra_likely: %d type:%d\n", is_intra_likely, s->pict_type);
+    // printf("is_intra_likely: %d type:%d\n", is_intra_likely, s->pict_type);
     return is_intra_likely > 0;
 }
 
 void ff_er_frame_start(ERContext *s)
 {
-    if (!s->avctx->error_concealment)
+    if (!s->avctx->err_recognition)
         return;
 
     memset(s->error_status_table, ER_MB_ERROR | VP_START | ER_MB_END,
@@ -798,7 +798,7 @@ void ff_er_add_slice(ERContext *s, int startx, int starty,
         return;
     }
 
-    if (!s->avctx->error_concealment)
+    if (!s->avctx->err_recognition)
         return;
 
     mask &= ~VP_START;
@@ -862,28 +862,13 @@ void ff_er_frame_end(ERContext *s)
 
     /* We do not support ER of field pictures yet,
      * though it should not crash if enabled. */
-    if (!s->avctx->error_concealment || s->error_count == 0            ||
+    if (!s->avctx->err_recognition || s->error_count == 0              ||
         s->avctx->lowres                                               ||
         !er_supported(s)                                               ||
         s->error_count == 3 * s->mb_width *
                           (s->avctx->skip_top + s->avctx->skip_bottom)) {
         return;
     }
-    for (mb_x = 0; mb_x < s->mb_width; mb_x++) {
-        int status = s->error_status_table[mb_x + (s->mb_height - 1) * s->mb_stride];
-        if (status != 0x7F)
-            break;
-    }
-
-    if (   mb_x == s->mb_width
-        && s->avctx->codec_id == AV_CODEC_ID_MPEG2VIDEO
-        && (s->avctx->height&16)
-        && s->error_count == 3 * s->mb_width * (s->avctx->skip_top + s->avctx->skip_bottom + 1)
-    ) {
-        av_log(s->avctx, AV_LOG_DEBUG, "ignoring last missing slice\n");
-        return;
-    }
-
     if (s->last_pic) {
         if (s->last_pic->f.width  != s->cur_pic->f.width  ||
             s->last_pic->f.height != s->cur_pic->f.height ||

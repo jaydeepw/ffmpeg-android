@@ -115,7 +115,7 @@ static int get_packet_header(AVFormatContext *s)
     uint32_t version, audio_format, header_size, channels, tmp;
     AVStream *st;
     uint8_t header[LXF_MAX_PACKET_HEADER_SIZE];
-    const uint8_t *p = header + LXF_IDENT_LENGTH;
+    const uint8_t *p;
 
     //find and read the ident
     if ((ret = sync(s, header)) < 0)
@@ -125,11 +125,11 @@ static int get_packet_header(AVFormatContext *s)
     if (ret != 8)
         return ret < 0 ? ret : AVERROR_EOF;
 
+    p = header + LXF_IDENT_LENGTH;
     version     = bytestream_get_le32(&p);
     header_size = bytestream_get_le32(&p);
     if (version > 1)
-        avpriv_request_sample(s, "Unknown format version %i\n", version);
-
+        avpriv_request_sample(s, "format version %i", version);
     if (header_size < (version ? 72 : 60) ||
         header_size > LXF_MAX_PACKET_HEADER_SIZE ||
         (header_size & 3)) {
@@ -140,8 +140,9 @@ static int get_packet_header(AVFormatContext *s)
     //read the rest of the packet header
     if ((ret = avio_read(pb, header + (p - header),
                           header_size - (p - header))) !=
-                          header_size - (p - header))
+                          header_size - (p - header)) {
         return ret < 0 ? ret : AVERROR_EOF;
+    }
 
     if (check_checksum(header, header_size))
         av_log(s, AV_LOG_ERROR, "checksum error\n");
@@ -161,18 +162,15 @@ static int get_packet_header(AVFormatContext *s)
         break;
     case 1:
         //audio
-        if (s->nb_streams < 2) {
+        if (!s->streams || !(st = s->streams[1])) {
             av_log(s, AV_LOG_INFO, "got audio packet, but no audio stream present\n");
             break;
         }
 
-        if (version == 0)
-            p += 8;
+        if (version == 0) p += 8;
         audio_format = bytestream_get_le32(&p);
         channels     = bytestream_get_le32(&p);
         track_size   = bytestream_get_le32(&p);
-
-        st = s->streams[1];
 
         //set codec based on specified audio bitdepth
         //we only support tightly packed 16-, 20-, 24- and 32-bit PCM at the moment
@@ -292,6 +290,7 @@ static int lxf_read_packet(AVFormatContext *s, AVPacket *pkt)
 {
     LXFDemuxContext *lxf = s->priv_data;
     AVIOContext   *pb  = s->pb;
+    AVStream *ast = NULL;
     uint32_t stream;
     int ret, ret2;
 
@@ -305,7 +304,7 @@ static int lxf_read_packet(AVFormatContext *s, AVPacket *pkt)
         return AVERROR(EAGAIN);
     }
 
-    if (stream == 1 && s->nb_streams < 2) {
+    if (stream == 1 && !(ast = s->streams[1])) {
         av_log(s, AV_LOG_ERROR, "got audio packet without having an audio stream\n");
         return AVERROR_INVALIDDATA;
     }
@@ -320,7 +319,7 @@ static int lxf_read_packet(AVFormatContext *s, AVPacket *pkt)
 
     pkt->stream_index = stream;
 
-    if (!stream) {
+    if (!ast) {
         //picture type (0 = closed I, 1 = open I, 2 = P, 3 = B)
         if (((lxf->video_format >> 22) & 0x3) < 2)
             pkt->flags |= AV_PKT_FLAG_KEY;

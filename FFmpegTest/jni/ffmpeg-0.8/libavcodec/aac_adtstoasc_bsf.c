@@ -112,7 +112,7 @@ static int aac_adtstoasc_filter(AVBitStreamFilterContext *bsfc,
 }
 
 AVBitStreamFilter ff_aac_adtstoasc_bsf = {
-    .name           = "aac_adtstoasc",
-    .priv_data_size = sizeof(AACBSFContext),
-    .filter         = aac_adtstoasc_filter,
+    "aac_adtstoasc",
+    sizeof(AACBSFContext),
+    aac_adtstoasc_filter,
 };

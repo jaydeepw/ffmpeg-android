@@ -42,8 +42,6 @@ static av_cold int bfi_decode_init(AVCodecContext *avctx)
     BFIContext *bfi = avctx->priv_data;
     avctx->pix_fmt  = AV_PIX_FMT_PAL8;
     bfi->dst        = av_mallocz(avctx->width * avctx->height);
-    if (!bfi->dst)
-        return AVERROR(ENOMEM);
     return 0;
 }
 
@@ -177,7 +175,6 @@ static av_cold int bfi_decode_close(AVCodecContext *avctx)
 
 AVCodec ff_bfi_decoder = {
     .name           = "bfi",
-    .long_name      = NULL_IF_CONFIG_SMALL("Brute Force & Ignorance"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_BFI,
     .priv_data_size = sizeof(BFIContext),
@@ -185,4 +182,5 @@ AVCodec ff_bfi_decoder = {
     .close          = bfi_decode_close,
     .decode         = bfi_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
+    .long_name      = NULL_IF_CONFIG_SMALL("Brute Force & Ignorance"),
 };

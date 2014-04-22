@@ -20,7 +20,6 @@
 
 #include "config.h"
 #include "libavutil/attributes.h"
-#include "libavutil/cpu.h"
 #include "libavutil/mem.h"
 #include "libavutil/ppc/util_altivec.h"
 #include "libavcodec/fmtconvert.h"
@@ -165,9 +164,6 @@ av_cold void ff_fmt_convert_init_ppc(FmtConvertContext *c,
                                      AVCodecContext *avctx)
 {
 #if HAVE_ALTIVEC
-    if (!(av_get_cpu_flags() & AV_CPU_FLAG_ALTIVEC))
-        return;
-
     c->int32_to_float_fmul_scalar = int32_to_float_fmul_scalar_altivec;
     if (!(avctx->flags & CODEC_FLAG_BITEXACT)) {
         c->float_to_int16 = float_to_int16_altivec;

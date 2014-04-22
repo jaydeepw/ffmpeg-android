@@ -21,9 +21,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "libavutil/intreadwrite.h"
+
 #include "avutil.h"
 #include "common.h"
-#include "intreadwrite.h"
 #include "xtea.h"
 
 void av_xtea_init(AVXTEA *ctx, const uint8_t key[16])
@@ -243,7 +244,7 @@ int main(void)
     AVXTEA ctx;
     uint8_t buf[8], iv[8];
     int i;
-    static const uint8_t src[32] = "HelloWorldHelloWorldHelloWorld";
+    const uint8_t src[32] = "HelloWorldHelloWorldHelloWorld";
     uint8_t ct[32];
     uint8_t pl[32];
 

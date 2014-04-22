@@ -38,17 +38,7 @@ typedef struct XanContext {
     GetByteContext gb;
 } XanContext;
 
-static av_cold int xan_decode_end(AVCodecContext *avctx)
-{
-    XanContext *s = avctx->priv_data;
-
-    av_frame_free(&s->pic);
-
-    av_freep(&s->y_buffer);
-    av_freep(&s->scratch_buffer);
-
-    return 0;
-}
+static av_cold int xan_decode_end(AVCodecContext *avctx);
 
 static av_cold int xan_decode_init(AVCodecContext *avctx)
 {
@@ -60,10 +50,6 @@ static av_cold int xan_decode_init(AVCodecContext *avctx)
 
     if (avctx->height < 8) {
         av_log(avctx, AV_LOG_ERROR, "Invalid frame height: %d.\n", avctx->height);
-        return AVERROR(EINVAL);
-    }
-    if (avctx->width & 1) {
-        av_log(avctx, AV_LOG_ERROR, "Invalid frame width: %d.\n", avctx->width);
         return AVERROR(EINVAL);
     }
 
@@ -314,7 +300,8 @@ static int xan_decode_frame_type0(AVCodecContext *avctx)
         ybuf[j+1] = cur << 1;
         last = cur;
     }
-    ybuf[j]  = last << 1;
+    if(j < avctx->width)
+        ybuf[j]  = last << 1;
     prev_buf = ybuf;
     ybuf += avctx->width;
 
@@ -327,7 +314,8 @@ static int xan_decode_frame_type0(AVCodecContext *avctx)
             ybuf[j+1] = cur << 1;
             last = cur;
         }
-        ybuf[j] = last << 1;
+        if(j < avctx->width)
+            ybuf[j] = last << 1;
         prev_buf = ybuf;
         ybuf += avctx->width;
     }
@@ -387,7 +375,8 @@ static int xan_decode_frame_type1(AVCodecContext *avctx)
             ybuf[j+1] = cur;
             last = cur;
         }
-        ybuf[j] = last;
+        if(j < avctx->width)
+            ybuf[j] = last;
         ybuf += avctx->width;
     }
 
@@ -438,9 +427,20 @@ static int xan_decode_frame(AVCodecContext *avctx,
     return avpkt->size;
 }
 
+static av_cold int xan_decode_end(AVCodecContext *avctx)
+{
+    XanContext *s = avctx->priv_data;
+
+    av_frame_free(&s->pic);
+
+    av_freep(&s->y_buffer);
+    av_freep(&s->scratch_buffer);
+
+    return 0;
+}
+
 AVCodec ff_xan_wc4_decoder = {
     .name           = "xan_wc4",
-    .long_name      = NULL_IF_CONFIG_SMALL("Wing Commander IV / Xxan"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_XAN_WC4,
     .priv_data_size = sizeof(XanContext),
@@ -448,4 +448,5 @@ AVCodec ff_xan_wc4_decoder = {
     .close          = xan_decode_end,
     .decode         = xan_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
+    .long_name      = NULL_IF_CONFIG_SMALL("Wing Commander IV / Xxan"),
 };

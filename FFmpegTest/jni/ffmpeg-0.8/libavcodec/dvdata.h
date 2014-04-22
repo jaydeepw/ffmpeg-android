@@ -34,7 +34,7 @@
 
 typedef struct DVVideoContext {
     const DVprofile *sys;
-    AVFrame         *frame;
+    AVFrame          picture;
     AVCodecContext  *avctx;
     uint8_t         *buf;
 

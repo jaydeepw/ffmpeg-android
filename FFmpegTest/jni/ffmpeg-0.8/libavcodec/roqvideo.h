@@ -44,6 +44,7 @@ struct RoqTempData;
 typedef struct RoqContext {
 
     AVCodecContext *avctx;
+    AVFrame frames[2];
     AVFrame *last_frame;
     AVFrame *current_frame;
     int first_frame;

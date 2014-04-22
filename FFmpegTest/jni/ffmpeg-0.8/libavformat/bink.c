@@ -116,8 +116,10 @@ static int read_header(AVFormatContext *s)
 
     vst->codec->codec_type = AVMEDIA_TYPE_VIDEO;
     vst->codec->codec_id   = AV_CODEC_ID_BINKVIDEO;
-    if (ff_alloc_extradata(vst->codec, 4))
+    vst->codec->extradata  = av_mallocz(4 + FF_INPUT_BUFFER_PADDING_SIZE);
+    if (!vst->codec->extradata)
         return AVERROR(ENOMEM);
+    vst->codec->extradata_size = 4;
     avio_read(pb, vst->codec->extradata, 4);
 
     bink->num_audio_tracks = avio_rl32(pb);
@@ -150,8 +152,10 @@ static int read_header(AVFormatContext *s)
                 ast->codec->channels       = 1;
                 ast->codec->channel_layout = AV_CH_LAYOUT_MONO;
             }
-            if (ff_alloc_extradata(ast->codec, 4))
+            ast->codec->extradata = av_mallocz(4 + FF_INPUT_BUFFER_PADDING_SIZE);
+            if (!ast->codec->extradata)
                 return AVERROR(ENOMEM);
+            ast->codec->extradata_size = 4;
             AV_WL32(ast->codec->extradata, vst->codec->codec_tag);
         }
 

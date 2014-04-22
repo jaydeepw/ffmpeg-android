@@ -217,7 +217,6 @@ static av_cold int tta_encode_close(AVCodecContext *avctx)
 
 AVCodec ff_tta_encoder = {
     .name           = "tta",
-    .long_name      = NULL_IF_CONFIG_SMALL("TTA (True Audio)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_TTA,
     .priv_data_size = sizeof(TTAEncContext),
@@ -229,4 +228,5 @@ AVCodec ff_tta_encoder = {
                                                      AV_SAMPLE_FMT_S16,
                                                      AV_SAMPLE_FMT_S32,
                                                      AV_SAMPLE_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("TTA (True Audio)"),
 };

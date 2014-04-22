@@ -35,6 +35,13 @@
 #include "swscale_internal.h"
 #include "libavutil/pixdesc.h"
 
+extern const uint8_t dither_2x2_4[3][8];
+extern const uint8_t dither_2x2_8[3][8];
+extern const uint8_t dither_4x4_16[5][8];
+extern const uint8_t dither_8x8_32[9][8];
+extern const uint8_t dither_8x8_73[9][8];
+extern const uint8_t dither_8x8_220[9][8];
+
 const int32_t ff_yuv2rgb_coeffs[8][4] = {
     { 117504, 138453, 13954, 34903 }, /* no sequence_display_extension */
     { 117504, 138453, 13954, 34903 }, /* ITU-R Rec. 709 (1990) */
@@ -383,9 +390,9 @@ ENDYUV2RGBLINE(24, 1)
 ENDYUV2RGBFUNC()
 
 YUV2RGBFUNC(yuv2rgb_c_16_ordered_dither, uint16_t, 0)
-    const uint8_t *d16 = ff_dither_2x2_8[y & 1];
-    const uint8_t *e16 = ff_dither_2x2_4[y & 1];
-    const uint8_t *f16 = ff_dither_2x2_8[(y & 1)^1];
+    const uint8_t *d16 = dither_2x2_8[y & 1];
+    const uint8_t *e16 = dither_2x2_4[y & 1];
+    const uint8_t *f16 = dither_2x2_8[(y & 1)^1];
 
 #define PUTRGB16(dst, src, i, o)                    \
     Y              = src[2 * i];                    \
@@ -414,8 +421,8 @@ YUV2RGBFUNC(yuv2rgb_c_16_ordered_dither, uint16_t, 0)
 CLOSEYUV2RGBFUNC(8)
 
 YUV2RGBFUNC(yuv2rgb_c_15_ordered_dither, uint16_t, 0)
-    const uint8_t *d16 = ff_dither_2x2_8[y & 1];
-    const uint8_t *e16 = ff_dither_2x2_8[(y & 1)^1];
+    const uint8_t *d16 = dither_2x2_8[y & 1];
+    const uint8_t *e16 = dither_2x2_8[(y & 1)^1];
 
 #define PUTRGB15(dst, src, i, o)                    \
     Y              = src[2 * i];                    \
@@ -445,7 +452,7 @@ CLOSEYUV2RGBFUNC(8)
 
 // r, g, b, dst_1, dst_2
 YUV2RGBFUNC(yuv2rgb_c_12_ordered_dither, uint16_t, 0)
-    const uint8_t *d16 = ff_dither_4x4_16[y & 3];
+    const uint8_t *d16 = dither_4x4_16[y & 3];
 
 #define PUTRGB12(dst, src, i, o)                    \
     Y              = src[2 * i];                    \
@@ -476,8 +483,8 @@ CLOSEYUV2RGBFUNC(8)
 
 // r, g, b, dst_1, dst_2
 YUV2RGBFUNC(yuv2rgb_c_8_ordered_dither, uint8_t, 0)
-    const uint8_t *d32 = ff_dither_8x8_32[y & 7];
-    const uint8_t *d64 = ff_dither_8x8_73[y & 7];
+    const uint8_t *d32 = dither_8x8_32[y & 7];
+    const uint8_t *d64 = dither_8x8_73[y & 7];
 
 #define PUTRGB8(dst, src, i, o)                     \
     Y              = src[2 * i];                    \
@@ -507,8 +514,8 @@ YUV2RGBFUNC(yuv2rgb_c_8_ordered_dither, uint8_t, 0)
 CLOSEYUV2RGBFUNC(8)
 
 YUV2RGBFUNC(yuv2rgb_c_4_ordered_dither, uint8_t, 0)
-    const uint8_t * d64 = ff_dither_8x8_73[y & 7];
-    const uint8_t *d128 = ff_dither_8x8_220[y & 7];
+    const uint8_t * d64 = dither_8x8_73[y & 7];
+    const uint8_t *d128 = dither_8x8_220[y & 7];
     int acc;
 
 #define PUTRGB4D(dst, src, i, o)                    \
@@ -540,8 +547,8 @@ YUV2RGBFUNC(yuv2rgb_c_4_ordered_dither, uint8_t, 0)
 CLOSEYUV2RGBFUNC(4)
 
 YUV2RGBFUNC(yuv2rgb_c_4b_ordered_dither, uint8_t, 0)
-    const uint8_t *d64  = ff_dither_8x8_73[y & 7];
-    const uint8_t *d128 = ff_dither_8x8_220[y & 7];
+    const uint8_t *d64  = dither_8x8_73[y & 7];
+    const uint8_t *d128 = dither_8x8_220[y & 7];
 
 #define PUTRGB4DB(dst, src, i, o)                   \
     Y              = src[2 * i];                    \
@@ -571,7 +578,7 @@ YUV2RGBFUNC(yuv2rgb_c_4b_ordered_dither, uint8_t, 0)
 CLOSEYUV2RGBFUNC(8)
 
 YUV2RGBFUNC(yuv2rgb_c_1_ordered_dither, uint8_t, 0)
-    const uint8_t *d128 = ff_dither_8x8_220[y & 7];
+    const uint8_t *d128 = dither_8x8_220[y & 7];
     char out_1 = 0, out_2 = 0;
     g = c->table_gU[128 + YUVRGB_TABLE_HEADROOM] + c->table_gV[128 + YUVRGB_TABLE_HEADROOM];
 
@@ -601,14 +608,14 @@ SwsFunc ff_yuv2rgb_get_func_ptr(SwsContext *c)
 {
     SwsFunc t = NULL;
 
-    if (ARCH_BFIN)
-        t = ff_yuv2rgb_init_bfin(c);
-    if (ARCH_PPC)
-        t = ff_yuv2rgb_init_ppc(c);
-    if (HAVE_VIS)
+    if (HAVE_MMX)
+        t = ff_yuv2rgb_init_mmx(c);
+    else if (HAVE_VIS)
         t = ff_yuv2rgb_init_vis(c);
-    if (ARCH_X86)
-        t = ff_yuv2rgb_init_x86(c);
+    else if (HAVE_ALTIVEC)
+        t = ff_yuv2rgb_init_altivec(c);
+    else if (ARCH_BFIN)
+        t = ff_yuv2rgb_get_func_ptr_bfin(c);
 
     if (t)
         return t;
@@ -768,12 +775,12 @@ av_cold int ff_yuv2rgb_c_init_tables(SwsContext *c, const int inv_table[4],
     c->yuv2rgb_u2b_coeff = (int16_t)roundToInt16(cbu << 13);
 
     //scale coefficients by cy
-    crv = ((crv << 16) + 0x8000) / FFMAX(cy, 1);
-    cbu = ((cbu << 16) + 0x8000) / FFMAX(cy, 1);
-    cgu = ((cgu << 16) + 0x8000) / FFMAX(cy, 1);
-    cgv = ((cgv << 16) + 0x8000) / FFMAX(cy, 1);
+    crv = ((crv << 16) + 0x8000) / cy;
+    cbu = ((cbu << 16) + 0x8000) / cy;
+    cgu = ((cgu << 16) + 0x8000) / cy;
+    cgv = ((cgv << 16) + 0x8000) / cy;
 
-    av_freep(&c->yuvTable);
+    av_free(c->yuvTable);
 
     switch (bpp) {
     case 1:
@@ -912,6 +919,7 @@ av_cold int ff_yuv2rgb_c_init_tables(SwsContext *c, const int inv_table[4],
         fill_gv_table(c->table_gV, 4, cgv);
         break;
     default:
+        c->yuvTable = NULL;
         if(!isPlanar(c->dstFormat) || bpp <= 24)
             av_log(c, AV_LOG_ERROR, "%ibpp not supported by yuv2rgb\n", bpp);
         return -1;

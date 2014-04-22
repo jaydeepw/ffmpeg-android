@@ -135,7 +135,7 @@ static int read_header(AVFormatContext *s)
             AVStream *st = avformat_new_stream(s, NULL);
 
             if (!st)
-                return AVERROR(ENOMEM);
+                return -1;
 
             st->codec->codec_type = AVMEDIA_TYPE_DATA;
             st->codec->codec_id   = AV_CODEC_ID_FFMETADATA;
@@ -145,7 +145,7 @@ static int read_header(AVFormatContext *s)
             AVChapter *ch = read_chapter(s);
 
             if (!ch)
-                return AVERROR(ENOMEM);
+                return -1;
 
             m = &ch->metadata;
         } else

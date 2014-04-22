@@ -22,6 +22,7 @@
 #include "libavutil/pixdesc.h"
 #include "avformat.h"
 #include "internal.h"
+#include "libavutil/pixdesc.h"
 
 #define Y4M_MAGIC "YUV4MPEG2"
 #define Y4M_FRAME_MAGIC "FRAME"

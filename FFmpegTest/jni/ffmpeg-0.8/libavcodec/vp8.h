@@ -29,6 +29,7 @@
 #include "libavutil/buffer.h"
 
 #include "vp56.h"
+#include "vp56data.h"
 #include "vp8dsp.h"
 #include "h264pred.h"
 #include "thread.h"
@@ -122,7 +123,7 @@ typedef struct VP8ThreadData {
 #endif
     int thread_mb_pos; // (mb_y << 16) | (mb_x & 0xFFFF)
     int wait_mb_pos; // What the current thread is waiting on.
-    DECLARE_ALIGNED(16, uint8_t, edge_emu_buffer)[21*32];
+    uint8_t *edge_emu_buffer;
     VP8FilterStrength *filter_strength;
 } VP8ThreadData;
 
@@ -270,12 +271,5 @@ typedef struct VP8Context {
      */
     int mb_layout;
 } VP8Context;
-
-int ff_vp8_decode_init(AVCodecContext *avctx);
-
-int ff_vp8_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
-                        AVPacket *avpkt);
-
-int ff_vp8_decode_free(AVCodecContext *avctx);
 
 #endif /* AVCODEC_VP8_H */

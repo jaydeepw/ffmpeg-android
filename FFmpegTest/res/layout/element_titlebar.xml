@@ -1,8 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-  xmlns:android="http://schemas.android.com/apk/res/android"
-  style="@style/titlebar">
-  	<TextView android:id="@+id/titlebar_text"
-  		style="@style/titlebar_text">
-  	</TextView>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/titlebar"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/titlebar_height" >
+
+    <TextView
+        android:id="@+id/titlebar_text"
+        style="@style/titlebar_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" >
+    </TextView>
+
+    <Button
+        android:id="@+id/video_browser_btn5"
+        style="@style/btn_bottommenu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Compress" />
+
 </LinearLayout>

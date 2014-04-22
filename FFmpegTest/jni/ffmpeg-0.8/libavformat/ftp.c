@@ -18,9 +18,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <stdlib.h>
 #include "libavutil/avstring.h"
+#include "libavutil/time.h"
 #include "avformat.h"
 #include "internal.h"
+#include "network.h"
+#include "os_support.h"
 #include "url.h"
 #include "libavutil/opt.h"
 #include "libavutil/bprint.h"
@@ -114,8 +118,9 @@ static int ftp_get_line(FTPContext *s, char *line, int line_size)
 
 /*
  * This routine returns ftp server response code.
- * Server may send more than one response for a certain command.
- * First expected code is returned.
+ * Server may send more than one response for a certain command, following priorities are used:
+ *   - When pref_codes are set then pref_code is return if occurred. (expected result)
+ *   - 0 is returned when no pref_codes or not occurred
  */
 static int ftp_status(FTPContext *s, char **line, const int response_codes[])
 {
@@ -198,8 +203,8 @@ static int ftp_auth(FTPContext *s)
     const char *user = NULL, *pass = NULL;
     char *end = NULL, buf[CONTROL_BUFFER_SIZE], credencials[CREDENTIALS_BUFFER_SIZE];
     int err;
-    static const int user_codes[] = {331, 230, 500, 530, 0}; /* 500, 530 are incorrect codes */
-    static const int pass_codes[] = {230, 503, 530, 0}; /* 503, 530 are incorrect codes */
+    const int user_codes[] = {331, 230, 500, 530, 0}; /* 500, 530 are incorrect codes */
+    const int pass_codes[] = {230, 503, 530, 0}; /* 503, 530 are incorrect codes */
 
     /* Authentication may be repeated, original string has to be saved */
     av_strlcpy(credencials, s->credencials, sizeof(credencials));
@@ -231,8 +236,8 @@ static int ftp_passive_mode(FTPContext *s)
 {
     char *res = NULL, *start = NULL, *end = NULL;
     int i;
-    static const char *command = "PASV\r\n";
-    static const int pasv_codes[] = {227, 501, 0}; /* 501 is incorrect code */
+    const char *command = "PASV\r\n";
+    const int pasv_codes[] = {227, 501, 0}; /* 501 is incorrect code */
 
     if (ftp_send_command(s, command, pasv_codes, &res) != 227 || !res)
         goto fail;
@@ -270,8 +275,6 @@ static int ftp_passive_mode(FTPContext *s)
   fail:
     av_free(res);
     s->server_data_port = -1;
-    av_log(s, AV_LOG_ERROR, "Set passive mode failed\n"
-                            "Your FTP server may use IPv6 which is not supported yet.\n");
     return AVERROR(EIO);
 }
 
@@ -279,8 +282,8 @@ static int ftp_current_dir(FTPContext *s)
 {
     char *res = NULL, *start = NULL, *end = NULL;
     int i;
-    static const char *command = "PWD\r\n";
-    static const int pwd_codes[] = {257, 0};
+    const char *command = "PWD\r\n";
+    const int pwd_codes[] = {257, 0};
 
     if (ftp_send_command(s, command, pwd_codes, &res) != 257 || !res)
         goto fail;
@@ -317,7 +320,7 @@ static int ftp_file_size(FTPContext *s)
 {
     char command[CONTROL_BUFFER_SIZE];
     char *res = NULL;
-    static const int size_codes[] = {213, 501, 550, 0}; /* 501, 550 are incorrect codes */
+    const int size_codes[] = {213, 501, 550, 0}; /* 501, 550 are incorrect codes */
 
     snprintf(command, sizeof(command), "SIZE %s\r\n", s->path);
     if (ftp_send_command(s, command, size_codes, &res) == 213 && res) {
@@ -335,7 +338,7 @@ static int ftp_file_size(FTPContext *s)
 static int ftp_retrieve(FTPContext *s)
 {
     char command[CONTROL_BUFFER_SIZE];
-    static const int retr_codes[] = {150, 550, 554, 0}; /* 550, 554 are incorrect codes */
+    const int retr_codes[] = {150, 550, 554, 0}; /* 550, 554 are incorrect codes */
 
     snprintf(command, sizeof(command), "RETR %s\r\n", s->path);
     if (ftp_send_command(s, command, retr_codes, NULL) != 150)
@@ -349,7 +352,7 @@ static int ftp_retrieve(FTPContext *s)
 static int ftp_store(FTPContext *s)
 {
     char command[CONTROL_BUFFER_SIZE];
-    static const int stor_codes[] = {150, 0};
+    const int stor_codes[] = {150, 0};
 
     snprintf(command, sizeof(command), "STOR %s\r\n", s->path);
     if (ftp_send_command(s, command, stor_codes, NULL) != 150)
@@ -362,8 +365,8 @@ static int ftp_store(FTPContext *s)
 
 static int ftp_type(FTPContext *s)
 {
-    static const char *command = "TYPE I\r\n";
-    static const int type_codes[] = {200, 500, 504, 0}; /* 500, 504 are incorrect codes */
+    const char *command = "TYPE I\r\n";
+    const int type_codes[] = {200, 500, 504, 0}; /* 500, 504 are incorrect codes */
 
     if (ftp_send_command(s, command, type_codes, NULL) != 200)
         return AVERROR(EIO);
@@ -374,7 +377,7 @@ static int ftp_type(FTPContext *s)
 static int ftp_restart(FTPContext *s, int64_t pos)
 {
     char command[CONTROL_BUFFER_SIZE];
-    static const int rest_codes[] = {350, 500, 501, 0}; /* 500, 501 are incorrect codes */
+    const int rest_codes[] = {350, 500, 501, 0}; /* 500, 501 are incorrect codes */
 
     snprintf(command, sizeof(command), "REST %"PRId64"\r\n", pos);
     if (ftp_send_command(s, command, rest_codes, NULL) != 350)
@@ -385,11 +388,11 @@ static int ftp_restart(FTPContext *s, int64_t pos)
 
 static int ftp_connect_control_connection(URLContext *h)
 {
-    char buf[CONTROL_BUFFER_SIZE], opts_format[20], *response = NULL;
+    char buf[CONTROL_BUFFER_SIZE], opts_format[20];
     int err;
     AVDictionary *opts = NULL;
     FTPContext *s = h->priv_data;
-    static const int connect_codes[] = {220, 0};
+    const int connect_codes[] = {220, 0};
 
     if (!s->conn_control) {
         ff_url_join(buf, sizeof(buf), "tcp", NULL,
@@ -406,16 +409,11 @@ static int ftp_connect_control_connection(URLContext *h)
             return err;
         }
 
-        /* check if server is ready */
-        if (ftp_status(s, ((h->flags & AVIO_FLAG_WRITE) ? &response : NULL), connect_codes) != 220) {
+        /* consume all messages from server */
+        if (ftp_status(s, NULL, connect_codes) != 220) {
             av_log(h, AV_LOG_ERROR, "FTP server not ready for new users\n");
             return AVERROR(EACCES);
         }
-
-        if ((h->flags & AVIO_FLAG_WRITE) && av_stristr(response, "pure-ftpd")) {
-            av_log(h, AV_LOG_WARNING, "Pure-FTPd server is used as an output protocol. It is known issue this implementation may produce incorrect content and it cannot be fixed at this moment.");
-        }
-        av_free(response);
 
         if ((err = ftp_auth(s)) < 0) {
             av_log(h, AV_LOG_ERROR, "FTP authentication failed\n");
@@ -423,7 +421,7 @@ static int ftp_connect_control_connection(URLContext *h)
         }
 
         if ((err = ftp_type(s)) < 0) {
-            av_log(h, AV_LOG_ERROR, "Set content type failed\n");
+            av_dlog(h, "Set content type failed\n");
             return err;
         }
     }
@@ -439,8 +437,10 @@ static int ftp_connect_data_connection(URLContext *h)
 
     if (!s->conn_data) {
         /* Enter passive mode */
-        if ((err = ftp_passive_mode(s)) < 0)
+        if ((err = ftp_passive_mode(s)) < 0) {
+            av_dlog(h, "Set passive mode failed\n");
             return err;
+        }
         /* Open data connection */
         ff_url_join(buf, sizeof(buf), "tcp", NULL, s->hostname, s->server_data_port, NULL);
         if (s->rw_timeout != -1) {
@@ -463,9 +463,9 @@ static int ftp_connect_data_connection(URLContext *h)
 
 static int ftp_abort(URLContext *h)
 {
-    static const char *command = "ABOR\r\n";
+    const char *command = "ABOR\r\n";
     int err;
-    static const int abor_codes[] = {225, 226, 0};
+    const int abor_codes[] = {225, 226, 0};
     FTPContext *s = h->priv_data;
 
     /* According to RCF 959:
@@ -486,13 +486,14 @@ static int ftp_abort(URLContext *h)
         }
     } else {
         ftp_close_data_connection(s);
-        if (ftp_status(s, NULL, abor_codes) < 225) {
-            /* wu-ftpd also closes control connection after data connection closing */
-            ffurl_closep(&s->conn_control);
-            if ((err = ftp_connect_control_connection(h)) < 0) {
-                av_log(h, AV_LOG_ERROR, "Reconnect failed.\n");
-                return err;
-            }
+    }
+
+    if (ftp_status(s, NULL, abor_codes) < 225) {
+        /* wu-ftpd also closes control connection after data connection closing */
+        ffurl_closep(&s->conn_control);
+        if ((err = ftp_connect_control_connection(h)) < 0) {
+            av_log(h, AV_LOG_ERROR, "Reconnect failed.\n");
+            return err;
         }
     }
 
@@ -575,7 +576,6 @@ static int64_t ftp_seek(URLContext *h, int64_t pos, int whence)
     if  (h->is_streamed)
         return AVERROR(EIO);
 
-    /* XXX: Simulate behaviour of lseek in file protocol, which could be treated as a reference */
     new_pos = FFMAX(0, new_pos);
     fake_pos = s->filesize != -1 ? FFMIN(new_pos, s->filesize) : new_pos;
 
@@ -595,7 +595,6 @@ static int ftp_read(URLContext *h, unsigned char *buf, int size)
     av_dlog(h, "ftp protocol read %d bytes\n", size);
   retry:
     if (s->state == DISCONNECTED) {
-        /* optimization */
         if (s->position >= s->filesize)
             return 0;
         if ((err = ftp_connect_data_connection(h)) < 0)
@@ -613,7 +612,6 @@ static int ftp_read(URLContext *h, unsigned char *buf, int size)
             s->position += read;
             if (s->position >= s->filesize) {
                 /* server will terminate, but keep current position to avoid madness */
-                /* save position to restart from it */
                 int64_t pos = s->position;
                 if (ftp_abort(h) < 0) {
                     s->position = pos;

@@ -193,7 +193,6 @@ static int roq_dpcm_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 
 AVCodec ff_roq_dpcm_encoder = {
     .name           = "roq_dpcm",
-    .long_name      = NULL_IF_CONFIG_SMALL("id RoQ DPCM"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_ROQ_DPCM,
     .priv_data_size = sizeof(ROQDPCMContext),
@@ -203,4 +202,5 @@ AVCodec ff_roq_dpcm_encoder = {
     .capabilities   = CODEC_CAP_DELAY,
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_S16,
                                                      AV_SAMPLE_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("id RoQ DPCM"),
 };

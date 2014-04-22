@@ -249,7 +249,8 @@ static void ls_store_lse(JLSState *state, PutBitContext *pb)
 static int encode_picture_ls(AVCodecContext *avctx, AVPacket *pkt,
                              const AVFrame *pict, int *got_packet)
 {
-    const AVFrame *const p = pict;
+    JpeglsContext *const s = avctx->priv_data;
+    AVFrame *const p       = &s->picture;
     const int near         = avctx->prediction_method;
     PutBitContext pb, pb2;
     GetBitContext gb;
@@ -257,6 +258,10 @@ static int encode_picture_ls(AVCodecContext *avctx, AVPacket *pkt,
     JLSState *state;
     int i, size, ret;
     int comps;
+
+    *p           = *pict;
+    p->pict_type = AV_PICTURE_TYPE_I;
+    p->key_frame = 1;
 
     if (avctx->pix_fmt == AV_PIX_FMT_GRAY8 ||
         avctx->pix_fmt == AV_PIX_FMT_GRAY16)
@@ -344,7 +349,7 @@ static int encode_picture_ls(AVCodecContext *avctx, AVPacket *pkt,
                 Rc[j] = last[j];
             }
             last = cur;
-            cur += p->linesize[0];
+            cur += s->picture.linesize[0];
         }
     } else if (avctx->pix_fmt == AV_PIX_FMT_BGR24) {
         int j, width;
@@ -358,7 +363,7 @@ static int encode_picture_ls(AVCodecContext *avctx, AVPacket *pkt,
                 Rc[j] = last[j];
             }
             last = cur;
-            cur += p->linesize[0];
+            cur += s->picture.linesize[0];
         }
     }
 
@@ -398,20 +403,12 @@ static int encode_picture_ls(AVCodecContext *avctx, AVPacket *pkt,
     return 0;
 }
 
-static av_cold int encode_close(AVCodecContext *avctx)
-{
-    av_frame_free(&avctx->coded_frame);
-    return 0;
-}
-
 static av_cold int encode_init_ls(AVCodecContext *ctx)
 {
-    ctx->coded_frame = av_frame_alloc();
-    if (!ctx->coded_frame)
-        return AVERROR(ENOMEM);
+    JpeglsContext *c = (JpeglsContext *)ctx->priv_data;
 
-    ctx->coded_frame->pict_type = AV_PICTURE_TYPE_I;
-    ctx->coded_frame->key_frame = 1;
+    c->avctx         = ctx;
+    ctx->coded_frame = &c->picture;
 
     if (ctx->pix_fmt != AV_PIX_FMT_GRAY8  &&
         ctx->pix_fmt != AV_PIX_FMT_GRAY16 &&
@@ -429,8 +426,8 @@ AVCodec ff_jpegls_encoder = {
     .long_name      = NULL_IF_CONFIG_SMALL("JPEG-LS"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_JPEGLS,
+    .priv_data_size = sizeof(JpeglsContext),
     .init           = encode_init_ls,
-    .close          = encode_close,
     .encode2        = encode_picture_ls,
     .pix_fmts       = (const enum AVPixelFormat[]) {
         AV_PIX_FMT_BGR24, AV_PIX_FMT_RGB24,

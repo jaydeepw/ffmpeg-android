@@ -1,7 +1,7 @@
 /*
  * FFV1 codec for libavcodec
  *
- * Copyright (c) 2003-2013 Michael Niedermayer <michaelni@gmx.at>
+ * Copyright (c) 2003-2012 Michael Niedermayer <michaelni@gmx.at>
  *
  * This file is part of FFmpeg.
  *
@@ -53,7 +53,6 @@ av_cold int ffv1_common_init(AVCodecContext *avctx)
     s->last_picture.f = av_frame_alloc();
     if (!s->picture.f || !s->last_picture.f)
         return AVERROR(ENOMEM);
-
     ff_dsputil_init(&s->dsp, avctx);
 
     s->width  = avctx->width;

@@ -30,6 +30,10 @@
 #include "libavcodec/mpegaudiodecheader.h"
 #include "libavutil/intreadwrite.h"
 #include "libavutil/opt.h"
+#include "libavcodec/mpegaudio.h"
+#include "libavcodec/mpegaudiodata.h"
+#include "libavcodec/mpegaudiodecheader.h"
+#include "libavformat/avio_internal.h"
 #include "libavutil/dict.h"
 #include "libavutil/avassert.h"
 
@@ -381,7 +385,7 @@ AVOutputFormat ff_mp2_muxer = {
     .name              = "mp2",
     .long_name         = NULL_IF_CONFIG_SMALL("MP2 (MPEG audio layer 2)"),
     .mime_type         = "audio/x-mpeg",
-    .extensions        = "mp2,m2a,mpa",
+    .extensions        = "mp2,m2a",
     .audio_codec       = AV_CODEC_ID_MP2,
     .video_codec       = AV_CODEC_ID_NONE,
     .write_packet      = ff_raw_write_packet,

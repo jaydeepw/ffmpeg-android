@@ -144,7 +144,7 @@ enum BlockTypes {
 };
 
 /**
- * Initialize length in all bundles.
+ * Initialize length length in all bundles.
  *
  * @param c     decoder context
  * @param width plane width
@@ -1344,13 +1344,13 @@ static void flush(AVCodecContext *avctx)
 
 AVCodec ff_bink_decoder = {
     .name           = "binkvideo",
-    .long_name      = NULL_IF_CONFIG_SMALL("Bink video"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_BINKVIDEO,
     .priv_data_size = sizeof(BinkContext),
     .init           = decode_init,
     .close          = decode_end,
     .decode         = decode_frame,
+    .long_name      = NULL_IF_CONFIG_SMALL("Bink video"),
     .flush          = flush,
     .capabilities   = CODEC_CAP_DR1,
 };

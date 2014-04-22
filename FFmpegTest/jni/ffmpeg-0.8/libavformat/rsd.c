@@ -101,7 +101,9 @@ static int rsd_read_header(AVFormatContext *s)
         /* RSD3GADP is mono, so only alloc enough memory
            to store the coeff table for a single channel. */
 
-        if (ff_alloc_extradata(codec, 32))
+        codec->extradata_size = 32;
+        codec->extradata = av_malloc(codec->extradata_size);
+        if (!codec->extradata)
             return AVERROR(ENOMEM);
 
         start = avio_rl32(pb);

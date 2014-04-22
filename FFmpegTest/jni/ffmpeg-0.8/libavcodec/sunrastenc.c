@@ -2,20 +2,20 @@
  * Sun Rasterfile (.sun/.ras/im{1,8,24}/.sunras) image encoder
  * Copyright (c) 2012 Aneesh Dogra (lionaneesh) <lionaneesh@gmail.com>
  *
- * This file is part of FFmpeg.
+ * This file is part of Libav.
  *
- * FFmpeg is free software; you can redistribute it and/or
+ * Libav is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
  *
- * FFmpeg is distributed in the hope that it will be useful,
+ * Libav is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with FFmpeg; if not, write to the Free Software
+ * License along with Libav; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
@@ -25,6 +25,7 @@
 #include "sunrast.h"
 
 typedef struct SUNRASTContext {
+    AVFrame picture;
     PutByteContext p;
     int depth;      ///< depth of pixel
     int length;     ///< length (bytes) of image
@@ -148,6 +149,9 @@ static av_cold int sunrast_encode_init(AVCodecContext *avctx)
         return AVERROR(EINVAL);
     }
 
+    avctx->coded_frame            = &s->picture;
+    avctx->coded_frame->key_frame = 1;
+    avctx->coded_frame->pict_type = AV_PICTURE_TYPE_I;
     s->maptype                    = RMT_NONE;
     s->maplength                  = 0;
 
@@ -198,12 +202,6 @@ static int sunrast_encode_frame(AVCodecContext *avctx,  AVPacket *avpkt,
     return 0;
 }
 
-static av_cold int sunrast_encode_close(AVCodecContext *avctx)
-{
-    av_frame_free(&avctx->coded_frame);
-    return 0;
-}
-
 static const AVCodecDefault sunrast_defaults[] = {
      { "coder", "rle" },
      { NULL },
@@ -211,12 +209,10 @@ static const AVCodecDefault sunrast_defaults[] = {
 
 AVCodec ff_sunrast_encoder = {
     .name           = "sunrast",
-    .long_name      = NULL_IF_CONFIG_SMALL("Sun Rasterfile image"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_SUNRAST,
     .priv_data_size = sizeof(SUNRASTContext),
     .init           = sunrast_encode_init,
-    .close          = sunrast_encode_close,
     .encode2        = sunrast_encode_frame,
     .defaults       = sunrast_defaults,
     .pix_fmts       = (const enum AVPixelFormat[]){ AV_PIX_FMT_BGR24,
@@ -224,4 +220,5 @@ AVCodec ff_sunrast_encoder = {
                                                   AV_PIX_FMT_GRAY8,
                                                   AV_PIX_FMT_MONOWHITE,
                                                   AV_PIX_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("Sun Rasterfile image"),
 };

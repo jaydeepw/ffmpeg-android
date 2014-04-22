@@ -17,5 +17,4 @@ LOCAL_SRC_FILES := ffmpeg-test-jni.c
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/ffmpeg-0.8/android/armv7-a/include
 LOCAL_SHARED_LIBRARY := ffmpeg-prebuilt
 LOCAL_LDLIBS    := -llog -ljnigraphics -lz -lm $(LOCAL_PATH)/ffmpeg-0.8/android/armv7-a/libffmpeg.so
-LOCAL_SHARED_LIBRARIES := libavformat libavcodec libswscale libavutil
 include $(BUILD_SHARED_LIBRARY)

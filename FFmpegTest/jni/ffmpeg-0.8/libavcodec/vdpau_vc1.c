@@ -32,10 +32,9 @@ static int vdpau_vc1_start_frame(AVCodecContext *avctx,
                                  const uint8_t *buffer, uint32_t size)
 {
     VC1Context * const v  = avctx->priv_data;
+    AVVDPAUContext *hwctx = avctx->hwaccel_context;
     MpegEncContext * const s = &v->s;
-    Picture *pic          = s->current_picture_ptr;
-    struct vdpau_picture_context *pic_ctx = pic->hwaccel_picture_private;
-    VdpPictureInfoVC1 *info = &pic_ctx->info.vc1;
+    VdpPictureInfoVC1 *info = &hwctx->info.vc1;
     VdpVideoSurface ref;
 
     /*  fill LvPictureInfoVC1 struct */
@@ -44,18 +43,14 @@ static int vdpau_vc1_start_frame(AVCodecContext *avctx,
 
     switch (s->pict_type) {
     case AV_PICTURE_TYPE_B:
-        if (s->next_picture_ptr) {
         ref = ff_vdpau_get_surface_id(&s->next_picture);
         assert(ref != VDP_INVALID_HANDLE);
         info->backward_reference = ref;
-        }
         /* fall-through */
     case AV_PICTURE_TYPE_P:
-        if (s->last_picture_ptr) {
         ref = ff_vdpau_get_surface_id(&s->last_picture);
         assert(ref != VDP_INVALID_HANDLE);
         info->forward_reference  = ref;
-        }
     }
 
     info->slice_count       = 0;
@@ -64,7 +59,7 @@ static int vdpau_vc1_start_frame(AVCodecContext *avctx,
     else
         info->picture_type  = s->pict_type - 1 + s->pict_type / 3;
 
-    info->frame_coding_mode = v->fcm ? (v->fcm + 1) : 0;
+    info->frame_coding_mode = v->fcm ? v->fcm + 1 : 0;
     info->postprocflag      = v->postprocflag;
     info->pulldown          = v->broadcast;
     info->interlace         = v->interlace;
@@ -93,23 +88,20 @@ static int vdpau_vc1_start_frame(AVCodecContext *avctx,
     info->deblockEnable     = v->postprocflag & 1;
     info->pquant            = v->pq;
 
-    return ff_vdpau_common_start_frame(pic, buffer, size);
+    return ff_vdpau_common_start_frame(avctx, buffer, size);
 }
 
 static int vdpau_vc1_decode_slice(AVCodecContext *avctx,
                                   const uint8_t *buffer, uint32_t size)
 {
-    VC1Context * const v  = avctx->priv_data;
-    MpegEncContext * const s = &v->s;
-    Picture *pic          = s->current_picture_ptr;
-    struct vdpau_picture_context *pic_ctx = pic->hwaccel_picture_private;
+    AVVDPAUContext *hwctx = avctx->hwaccel_context;
     int val;
 
-    val = ff_vdpau_add_buffer(pic, buffer, size);
+    val = ff_vdpau_add_buffer(avctx, buffer, size);
     if (val < 0)
         return val;
 
-    pic_ctx->info.vc1.slice_count++;
+    hwctx->info.vc1.slice_count++;
     return 0;
 }
 
@@ -122,7 +114,6 @@ AVHWAccel ff_wmv3_vdpau_hwaccel = {
     .start_frame    = vdpau_vc1_start_frame,
     .end_frame      = ff_vdpau_mpeg_end_frame,
     .decode_slice   = vdpau_vc1_decode_slice,
-    .priv_data_size = sizeof(struct vdpau_picture_context),
 };
 #endif
 
@@ -134,5 +125,4 @@ AVHWAccel ff_vc1_vdpau_hwaccel = {
     .start_frame    = vdpau_vc1_start_frame,
     .end_frame      = ff_vdpau_mpeg_end_frame,
     .decode_slice   = vdpau_vc1_decode_slice,
-    .priv_data_size = sizeof(struct vdpau_picture_context),
 };

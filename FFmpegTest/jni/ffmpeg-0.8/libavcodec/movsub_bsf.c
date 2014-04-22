@@ -35,8 +35,9 @@ static int text2movsub(AVBitStreamFilterContext *bsfc, AVCodecContext *avctx, co
 }
 
 AVBitStreamFilter ff_text2movsub_bsf={
-    .name   = "text2movsub",
-    .filter = text2movsub,
+    "text2movsub",
+    0,
+    text2movsub,
 };
 
 static int mov2textsub(AVBitStreamFilterContext *bsfc, AVCodecContext *avctx, const char *args,
@@ -50,6 +51,7 @@ static int mov2textsub(AVBitStreamFilterContext *bsfc, AVCodecContext *avctx, co
 }
 
 AVBitStreamFilter ff_mov2textsub_bsf={
-    .name   = "mov2textsub",
-    .filter = mov2textsub,
+    "mov2textsub",
+    0,
+    mov2textsub,
 };

@@ -38,6 +38,7 @@
 typedef struct ASV1Context{
     AVCodecContext *avctx;
     DSPContext dsp;
+    AVFrame picture;
     PutBitContext pb;
     GetBitContext gb;
     ScanTable scantable;

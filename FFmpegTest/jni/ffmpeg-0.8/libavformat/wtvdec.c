@@ -58,11 +58,6 @@ typedef struct {
     int64_t length;
 } WtvFile;
 
-static int64_t seek_by_sector(AVIOContext *pb, int64_t sector, int64_t offset)
-{
-    return avio_seek(pb, (sector << WTV_SECTOR_BITS) + offset, SEEK_SET);
-}
-
 /**
  * @return bytes read, 0 on end of file, or <0 on error
  */
@@ -93,7 +88,7 @@ static int wtvfile_read_packet(void *opaque, uint8_t *buf, int buf_size)
             int i = wf->position >> wf->sector_bits;
             if (i >= wf->nb_sectors ||
                 (wf->sectors[i] != wf->sectors[i - 1] + (1 << (wf->sector_bits - WTV_SECTOR_BITS)) &&
-                seek_by_sector(pb, wf->sectors[i], 0) < 0)) {
+                avio_seek(pb, (int64_t)wf->sectors[i] << WTV_SECTOR_BITS, SEEK_SET) < 0)) {
                 wf->error = 1;
                 break;
             }
@@ -118,8 +113,8 @@ static int64_t wtvfile_seek(void *opaque, int64_t offset, int whence)
         offset = wf->length;
 
     wf->error = offset < 0 || offset >= wf->length ||
-                seek_by_sector(pb, wf->sectors[offset >> wf->sector_bits],
-                               offset & ((1 << wf->sector_bits) - 1)) < 0;
+                avio_seek(pb, ((int64_t)wf->sectors[offset >> wf->sector_bits] << WTV_SECTOR_BITS)
+                              + (offset & ((1 << wf->sector_bits) - 1)), SEEK_SET) < 0;
     wf->position = offset;
     return offset;
 }
@@ -154,7 +149,7 @@ static AVIOContext * wtvfile_open_sector(int first_sector, uint64_t length, int 
     WtvFile *wf;
     uint8_t *buffer;
 
-    if (seek_by_sector(s->pb, first_sector, 0) < 0)
+    if (avio_seek(s->pb, (int64_t)first_sector << WTV_SECTOR_BITS, SEEK_SET) < 0)
         return NULL;
 
     wf = av_mallocz(sizeof(WtvFile));
@@ -181,14 +176,14 @@ static AVIOContext * wtvfile_open_sector(int first_sector, uint64_t length, int 
         int nb_sectors1 = read_ints(s->pb, sectors1, WTV_SECTOR_SIZE / 4);
         int i;
 
-        wf->sectors = av_malloc_array(nb_sectors1, 1 << WTV_SECTOR_BITS);
+        wf->sectors = av_malloc(nb_sectors1 << WTV_SECTOR_BITS);
         if (!wf->sectors) {
             av_free(wf);
             return NULL;
         }
         wf->nb_sectors = 0;
         for (i = 0; i < nb_sectors1; i++) {
-            if (seek_by_sector(s->pb, sectors1[i], 0) < 0)
+            if (avio_seek(s->pb, (int64_t)sectors1[i] << WTV_SECTOR_BITS, SEEK_SET) < 0)
                 break;
             wf->nb_sectors += read_ints(s->pb, wf->sectors + i * WTV_SECTOR_SIZE / 4, WTV_SECTOR_SIZE / 4);
         }
@@ -218,7 +213,7 @@ static AVIOContext * wtvfile_open_sector(int first_sector, uint64_t length, int 
 
     /* seek to initial sector */
     wf->position = 0;
-    if (seek_by_sector(s->pb, wf->sectors[0], 0) < 0) {
+    if (avio_seek(s->pb, (int64_t)wf->sectors[0] << WTV_SECTOR_BITS, SEEK_SET) < 0) {
         av_free(wf->sectors);
         av_free(wf);
         return NULL;
@@ -266,12 +261,7 @@ static AVIOContext * wtvfile_open2(AVFormatContext *s, const uint8_t *buf, int b
         dir_length  = AV_RL16(buf + 16);
         file_length = AV_RL64(buf + 24);
         name_size   = 2 * AV_RL32(buf + 32);
-        if (name_size < 0) {
-            av_log(s, AV_LOG_ERROR,
-                   "bad filename length, remaining directory entries ignored\n");
-            break;
-        }
-        if (48 + (int64_t)name_size > buf_end - buf) {
+        if (buf + 48 + (int64_t)name_size > buf_end || name_size<0) {
             av_log(s, AV_LOG_ERROR, "filename exceeds buffer size; remaining directory entries ignored\n");
             break;
         }
@@ -946,7 +936,7 @@ static int read_header(AVFormatContext *s)
     avio_skip(s->pb, 4);
     root_sector = avio_rl32(s->pb);
 
-    seek_by_sector(s->pb, root_sector, 0);
+    avio_seek(s->pb, (int64_t)root_sector << WTV_SECTOR_BITS, SEEK_SET);
     root_size = avio_read(s->pb, root, root_size);
     if (root_size < 0)
         return AVERROR_INVALIDDATA;

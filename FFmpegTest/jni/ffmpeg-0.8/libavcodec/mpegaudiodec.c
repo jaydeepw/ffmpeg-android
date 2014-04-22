@@ -1963,8 +1963,7 @@ static int decode_frame_mp3on4(AVCodecContext *avctx, void *data,
 
         avpriv_mpegaudio_decode_header((MPADecodeHeader *)m, header);
 
-        if (ch + m->nb_channels > avctx->channels ||
-            s->coff[fr] + m->nb_channels > avctx->channels) {
+        if (ch + m->nb_channels > avctx->channels || s->coff[fr] + m->nb_channels > avctx->channels) {
             av_log(avctx, AV_LOG_ERROR, "frame channel count exceeds codec "
                                         "channel count\n");
             return AVERROR_INVALIDDATA;
@@ -1999,7 +1998,6 @@ static int decode_frame_mp3on4(AVCodecContext *avctx, void *data,
 #if CONFIG_MP1_DECODER
 AVCodec ff_mp1_decoder = {
     .name           = "mp1",
-    .long_name      = NULL_IF_CONFIG_SMALL("MP1 (MPEG audio layer 1)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_MP1,
     .priv_data_size = sizeof(MPADecodeContext),
@@ -2007,6 +2005,7 @@ AVCodec ff_mp1_decoder = {
     .decode         = decode_frame,
     .capabilities   = CODEC_CAP_DR1,
     .flush          = flush,
+    .long_name      = NULL_IF_CONFIG_SMALL("MP1 (MPEG audio layer 1)"),
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_S16P,
                                                       AV_SAMPLE_FMT_S16,
                                                       AV_SAMPLE_FMT_NONE },
@@ -2015,7 +2014,6 @@ AVCodec ff_mp1_decoder = {
 #if CONFIG_MP2_DECODER
 AVCodec ff_mp2_decoder = {
     .name           = "mp2",
-    .long_name      = NULL_IF_CONFIG_SMALL("MP2 (MPEG audio layer 2)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_MP2,
     .priv_data_size = sizeof(MPADecodeContext),
@@ -2023,6 +2021,7 @@ AVCodec ff_mp2_decoder = {
     .decode         = decode_frame,
     .capabilities   = CODEC_CAP_DR1,
     .flush          = flush,
+    .long_name      = NULL_IF_CONFIG_SMALL("MP2 (MPEG audio layer 2)"),
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_S16P,
                                                       AV_SAMPLE_FMT_S16,
                                                       AV_SAMPLE_FMT_NONE },
@@ -2031,7 +2030,6 @@ AVCodec ff_mp2_decoder = {
 #if CONFIG_MP3_DECODER
 AVCodec ff_mp3_decoder = {
     .name           = "mp3",
-    .long_name      = NULL_IF_CONFIG_SMALL("MP3 (MPEG audio layer 3)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_MP3,
     .priv_data_size = sizeof(MPADecodeContext),
@@ -2039,6 +2037,7 @@ AVCodec ff_mp3_decoder = {
     .decode         = decode_frame,
     .capabilities   = CODEC_CAP_DR1,
     .flush          = flush,
+    .long_name      = NULL_IF_CONFIG_SMALL("MP3 (MPEG audio layer 3)"),
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_S16P,
                                                       AV_SAMPLE_FMT_S16,
                                                       AV_SAMPLE_FMT_NONE },
@@ -2047,7 +2046,6 @@ AVCodec ff_mp3_decoder = {
 #if CONFIG_MP3ADU_DECODER
 AVCodec ff_mp3adu_decoder = {
     .name           = "mp3adu",
-    .long_name      = NULL_IF_CONFIG_SMALL("ADU (Application Data Unit) MP3 (MPEG audio layer 3)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_MP3ADU,
     .priv_data_size = sizeof(MPADecodeContext),
@@ -2055,6 +2053,7 @@ AVCodec ff_mp3adu_decoder = {
     .decode         = decode_frame_adu,
     .capabilities   = CODEC_CAP_DR1,
     .flush          = flush,
+    .long_name      = NULL_IF_CONFIG_SMALL("ADU (Application Data Unit) MP3 (MPEG audio layer 3)"),
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_S16P,
                                                       AV_SAMPLE_FMT_S16,
                                                       AV_SAMPLE_FMT_NONE },
@@ -2063,7 +2062,6 @@ AVCodec ff_mp3adu_decoder = {
 #if CONFIG_MP3ON4_DECODER
 AVCodec ff_mp3on4_decoder = {
     .name           = "mp3on4",
-    .long_name      = NULL_IF_CONFIG_SMALL("MP3onMP4"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_MP3ON4,
     .priv_data_size = sizeof(MP3On4DecodeContext),
@@ -2072,6 +2070,7 @@ AVCodec ff_mp3on4_decoder = {
     .decode         = decode_frame_mp3on4,
     .capabilities   = CODEC_CAP_DR1,
     .flush          = flush_mp3on4,
+    .long_name      = NULL_IF_CONFIG_SMALL("MP3onMP4"),
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_S16P,
                                                       AV_SAMPLE_FMT_NONE },
 };

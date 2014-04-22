@@ -22,7 +22,6 @@
 #include <stdarg.h>
 #include "avcodec.h"
 #include "libavutil/avstring.h"
-#include "libavutil/bprint.h"
 #include "ass_split.h"
 #include "ass.h"
 
@@ -32,8 +31,10 @@
 typedef struct {
     AVCodecContext *avctx;
     ASSSplitContext *ass_ctx;
-    AVBPrint buffer;
-    unsigned timestamp_end;
+    char buffer[2048];
+    char *ptr;
+    char *end;
+    char *dialog_start;
     int count;
     char stack[SRT_STACK_SIZE];
     int stack_ptr;
@@ -48,7 +49,7 @@ static void srt_print(SRTContext *s, const char *str, ...)
 {
     va_list vargs;
     va_start(vargs, str);
-    av_vbprintf(&s->buffer, str, vargs);
+    s->ptr += vsnprintf(s->ptr, s->end - s->ptr, str, vargs);
     va_end(vargs);
 }
 
@@ -137,14 +138,14 @@ static av_cold int srt_encode_init(AVCodecContext *avctx)
     SRTContext *s = avctx->priv_data;
     s->avctx = avctx;
     s->ass_ctx = ff_ass_split(avctx->subtitle_header);
-    av_bprint_init(&s->buffer, 0, AV_BPRINT_SIZE_UNLIMITED);
     return s->ass_ctx ? 0 : AVERROR_INVALIDDATA;
 }
 
 static void srt_text_cb(void *priv, const char *text, int len)
 {
     SRTContext *s = priv;
-    av_bprint_append_data(&s->buffer, text, len);
+    av_strlcpy(s->ptr, text, FFMIN(s->end-s->ptr, len+1));
+    s->ptr += len;
 }
 
 static void srt_new_line_cb(void *priv, int forced)
@@ -207,19 +208,11 @@ static void srt_move_cb(void *priv, int x1, int y1, int x2, int y2,
     char buffer[32];
     int len = snprintf(buffer, sizeof(buffer),
                        "  X1:%03u X2:%03u Y1:%03u Y2:%03u", x1, x2, y1, y2);
-    unsigned char *dummy;
-    unsigned room;
-
-    av_bprint_get_buffer(&s->buffer, len, &dummy, &room);
-    if (room >= len) {
-        memmove(s->buffer.str + s->timestamp_end + len,
-                s->buffer.str + s->timestamp_end,
-                s->buffer.len - s->timestamp_end + 1);
-        memcpy(s->buffer.str + s->timestamp_end, buffer, len);
+    if (s->end - s->ptr > len) {
+        memmove(s->dialog_start+len, s->dialog_start, s->ptr-s->dialog_start+1);
+        memcpy(s->dialog_start, buffer, len);
+        s->ptr += len;
     }
-    /* Increment even if av_bprint_get_buffer() did not return enough room:
-       the bprint structure will be treated as truncated. */
-    s->buffer.len += len;
     }
 }
 
@@ -250,9 +243,10 @@ static int srt_encode_frame(AVCodecContext *avctx,
 {
     SRTContext *s = avctx->priv_data;
     ASSDialog *dialog;
-    int i, num;
+    int i, len, num;
 
-    av_bprint_clear(&s->buffer);
+    s->ptr = s->buffer;
+    s->end = s->ptr + sizeof(s->buffer);
 
     for (i=0; i<sub->num_rects; i++) {
 
@@ -274,7 +268,7 @@ static int srt_encode_frame(AVCodecContext *avctx,
                 es = ec/   1000;  ec -=    1000*es;
                 srt_print(s,"%d\r\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\r\n",
                           ++s->count, sh, sm, ss, sc, eh, em, es, ec);
-                s->timestamp_end = s->buffer.len - 2;
+                s->dialog_start = s->ptr - 2;
             }
             s->alignment_applied = 0;
             srt_style_apply(s, dialog->style);
@@ -282,25 +276,23 @@ static int srt_encode_frame(AVCodecContext *avctx,
         }
     }
 
-    if (!av_bprint_is_complete(&s->buffer))
-        return AVERROR(ENOMEM);
-    if (!s->buffer.len)
+    if (s->ptr == s->buffer)
         return 0;
 
-    if (s->buffer.len > bufsize) {
+    len = av_strlcpy(buf, s->buffer, bufsize);
+
+    if (len > bufsize-1) {
         av_log(avctx, AV_LOG_ERROR, "Buffer too small for ASS event.\n");
         return -1;
     }
-    memcpy(buf, s->buffer.str, s->buffer.len);
 
-    return s->buffer.len;
+    return len;
 }
 
 static int srt_encode_close(AVCodecContext *avctx)
 {
     SRTContext *s = avctx->priv_data;
     ff_ass_split_free(s->ass_ctx);
-    av_bprint_finalize(&s->buffer, NULL);
     return 0;
 }
 
