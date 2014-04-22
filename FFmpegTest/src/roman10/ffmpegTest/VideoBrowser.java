@@ -1,12 +1,13 @@
 package roman10.ffmpegTest;
 
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import roman10.iconifiedtextselectedlist.IconifiedTextSelected;
 import roman10.iconifiedtextselectedlist.IconifiedTextSelectedView;
-
 import android.app.Dialog;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
@@ -23,12 +24,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.AbsListView;
+import android.widget.AbsListView.OnScrollListener;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.AbsListView.OnScrollListener;
 
 public class VideoBrowser extends ListActivity implements ListView.OnScrollListener {
 
@@ -329,6 +330,54 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 				Toast.makeText(mContext, "Compress", Toast.LENGTH_LONG).show();
 				Log.v(TAG, "ready to compress");
 				
+				File dir = new File("/mnt/sdcard");
+				Process p = null;
+				try {
+					p = Runtime.getRuntime().exec("su", null, dir);
+				} catch (IOException e) {
+				    Log.i(TAG, "IOE Root access not root");
+				}
+				
+				DataOutputStream pOut = new DataOutputStream(p.getOutputStream());
+			    try {
+					pOut.writeBytes("echo hello\n");
+					pOut.flush();
+				    pOut.writeBytes("exit\n");
+				    pOut.flush();
+				} catch (IOException e2) {
+					e2.printStackTrace();
+				}
+			 
+			    try {
+			        p.waitFor();
+			    } catch (InterruptedException e) {
+			        Log.w(TAG,"IE Root access not root");
+			    }
+			    if (p.exitValue() == 0)
+			        Log.i( TAG, "Root access root");
+			    else
+			        Log.i(TAG,"Root access not root");
+			    
+			 	try {
+			        System.loadLibrary("ffmpeg");   
+			    } catch (Exception e) {
+			        e.printStackTrace();
+			    }
+			 	
+			    
+			    // Process p = null;
+			    
+				try {
+					// p = Runtime.getRuntime().exec("ffmpeg -i test.wav test1.wav", null, dir);
+					p = Runtime.getRuntime().exec("echo hello", null, dir);
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+				try {
+				     if(p != null)	p.waitFor();
+				}  catch (InterruptedException e) {
+				      e.printStackTrace();
+				}
 			}
 		});
 		
